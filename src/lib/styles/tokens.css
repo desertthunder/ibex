@@ -1,0 +1,81 @@
+:root {
+	--aubergine-950: #2c001e;
+	--aubergine-900: #3f102f;
+	--aubergine-800: #5a1f43;
+	--brown-950: #1f140d;
+	--brown-900: #2d1b12;
+	--brown-800: #4a2d1a;
+	--brown-700: #6b401e;
+	--brown-600: #8a5527;
+	--orange-700: #c45b12;
+	--orange-600: #dd6f1a;
+	--orange-500: #f28c22;
+	--tan-100: #f4ead7;
+	--tan-200: #e6d2b3;
+	--tan-300: #d1b183;
+	--sand-50: #fbf8ef;
+	--sand-100: #f2ead9;
+	--sand-200: #dfcfaf;
+	--gray-900: #201d1a;
+	--gray-700: #4d4740;
+	--gray-500: #827b70;
+	--gray-300: #bdb6aa;
+	--gray-200: #d7d0c4;
+	--gray-100: #ede8dc;
+	--blue-700: #235a97;
+	--blue-600: #2d76bd;
+	--green-700: #4b7429;
+
+	--desktop-bg: #5b412e;
+	--desktop-text: #fff7df;
+	--panel-start: #3b2418;
+	--panel-end: #1f140d;
+	--panel-border-light: rgb(255 255 255 / 0.18);
+	--panel-border-dark: rgb(0 0 0 / 0.65);
+	--window-chrome: #d9c7aa;
+	--window-chrome-dark: #9f835d;
+	--window-title-start: #704321;
+	--window-title-end: #3c2113;
+	--window-surface: #f3eadb;
+	--window-surface-raised: #fffaf0;
+	--window-surface-sunken: #d8c7ab;
+	--text: #251b13;
+	--text-muted: #67594c;
+	--accent: var(--orange-600);
+	--focus-ring: #f4ba62;
+	--selection: #d96c18;
+
+	--font-sans: 'Ubuntu Sans Variable', Ubuntu, system-ui, sans-serif;
+	--font-mono: 'Ubuntu Mono', 'DejaVu Sans Mono', monospace;
+
+	--text-0: 0.75rem;
+	--text-1: 0.8125rem;
+	--text-2: 0.875rem;
+	--text-3: 1rem;
+	--text-4: 1.125rem;
+	--text-5: 1.375rem;
+	--text-6: 1.75rem;
+
+	--leading-tight: 1.15;
+	--leading-base: 1.4;
+	--leading-roomy: 1.6;
+
+	--space-1: 0.25rem;
+	--space-2: 0.5rem;
+	--space-3: 0.75rem;
+	--space-4: 1rem;
+	--space-5: 1.25rem;
+	--space-6: 1.5rem;
+	--space-8: 2rem;
+	--space-10: 2.5rem;
+	--space-12: 3rem;
+
+	--radius-1: 2px;
+	--radius-2: 4px;
+	--radius-3: 7px;
+	--radius-round: 999px;
+
+	--shadow-window: 0 18px 46px rgb(0 0 0 / 0.42), 0 1px 0 rgb(255 255 255 / 0.5) inset;
+	--shadow-raised: 0 1px 0 rgb(255 255 255 / 0.75) inset, 0 1px 2px rgb(0 0 0 / 0.28);
+	--shadow-sunken: 0 1px 2px rgb(0 0 0 / 0.35) inset, 0 1px 0 rgb(255 255 255 / 0.35);
+}
