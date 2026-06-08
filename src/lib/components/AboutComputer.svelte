@@ -41,7 +41,10 @@
 		</dl>
 	</div>
 
-	<p class="note">Humanity icons, Ubuntu fonts, tan window chrome, and public ATProto repo browsing.</p>
+	<p class="note">
+		View the project on
+		<a href="https://tangled.org/desertthunder.dev/ibex" target="_blank" rel="noreferrer">Tangled</a>.
+	</p>
 </section>
 
 <style>
@@ -127,6 +130,12 @@
 
 	.note {
 		align-self: end;
+	}
+
+	.note a {
+		color: var(--blue-700);
+		font-weight: 700;
+		text-decoration: underline;
 	}
 
 	@media (max-width: 640px) {

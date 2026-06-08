@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
 	import type { Snippet } from 'svelte';
 
 	type Props = {
@@ -8,6 +10,11 @@
 		movable?: boolean;
 		showMenubar?: boolean;
 		showToolbar?: boolean;
+		windowId?: string;
+		maximized?: boolean;
+		onfocus?: () => void;
+		onminimize?: () => void;
+		onmaximize?: () => void;
 		onclose?: () => void;
 	};
 
@@ -18,6 +25,11 @@
 		movable = true,
 		showMenubar = true,
 		showToolbar = true,
+		windowId,
+		maximized = false,
+		onfocus,
+		onminimize,
+		onmaximize,
 		onclose,
 		children
 	}: Props & { children: Snippet } = $props();
@@ -28,8 +40,27 @@
 		null
 	);
 
+	const storageKey = $derived(windowId ? `intrepid-ibex:window-position:${windowId}` : null);
+
+	onMount(() => {
+		if (!browser || !storageKey) return;
+
+		const storedPosition = localStorage.getItem(storageKey);
+		if (!storedPosition) return;
+
+		try {
+			const position = JSON.parse(storedPosition) as { x?: number; y?: number };
+			x = typeof position.x === 'number' ? position.x : 0;
+			y = typeof position.y === 'number' ? position.y : 0;
+		} catch {
+			localStorage.removeItem(storageKey);
+		}
+	});
+
 	function startDrag(event: PointerEvent) {
-		if (!movable || event.button !== 0 || event.target instanceof HTMLButtonElement) {
+		onfocus?.();
+
+		if (!movable || maximized || event.button !== 0 || event.target instanceof HTMLButtonElement) {
 			return;
 		}
 
@@ -54,10 +85,21 @@
 
 		(event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId);
 		drag = null;
+
+		if (browser && storageKey) {
+			localStorage.setItem(storageKey, JSON.stringify({ x, y }));
+		}
 	}
 </script>
 
-<section class="app-window" class:dragging={drag} aria-label={title} style:transform={`translate(${x}px, ${y}px)`}>
+<section
+	class="app-window"
+	class:dragging={drag}
+	class:maximized
+	aria-label={title}
+	role="group"
+	style:transform={maximized ? undefined : `translate(${x}px, ${y}px)`}
+	onpointerdown={onfocus}>
 	<header
 		class="titlebar"
 		role="group"
@@ -71,8 +113,12 @@
 			<h1>{title}</h1>
 		</div>
 		<div class="window-controls" aria-label="Window controls">
-			<button type="button" aria-label="Minimize" tabindex="-1"></button>
-			<button type="button" aria-label="Maximize" tabindex="-1"></button>
+			<button type="button" aria-label="Minimize" tabindex={onminimize ? 0 : -1} onclick={onminimize}></button>
+			<button
+				type="button"
+				aria-label={maximized ? 'Restore' : 'Maximize'}
+				tabindex={onmaximize ? 0 : -1}
+				onclick={onmaximize}></button>
 			<button type="button" aria-label="Close" tabindex={onclose ? 0 : -1} onclick={onclose}></button>
 		</div>
 	</header>
@@ -119,6 +165,11 @@
 
 	.app-window.dragging {
 		user-select: none;
+	}
+
+	.app-window.maximized {
+		border-radius: 0;
+		transform: none;
 	}
 
 	.titlebar {

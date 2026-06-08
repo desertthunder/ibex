@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import favicon from '$lib/assets/favicon.svg';
+	import { windowManager } from '$lib/window-manager.svelte';
 	import AboutComputer from '$lib/components/AboutComputer.svelte';
 	import AppWindow from '$lib/components/AppWindow.svelte';
 	import DesktopIcon from '$lib/components/DesktopIcon.svelte';
@@ -11,17 +12,34 @@
 
 	let { children } = $props();
 	let showAboutComputer = $state(false);
+	let showStickyNote = $state(true);
 
 	const shortcuts = $derived([
-		{ label: 'ibex Home', icon: '/icons/humanity/places/user-home.svg', selected: true },
-		{ label: 'Collections', icon: '/icons/humanity/places/folder.svg' },
+		{
+			label: 'ibex Home',
+			icon: '/icons/humanity/places/user-home.svg',
+			selected: false,
+			onactivate: () => windowManager.restore('main')
+		},
+		{
+			label: 'Collections',
+			icon: '/icons/humanity/places/folder.svg',
+			onactivate: () => windowManager.restore('main')
+		},
 		{
 			label: 'Computer',
 			icon: '/icons/humanity/devices/computer.svg',
 			selected: showAboutComputer,
-			onactivate: () => (showAboutComputer = true)
+			onactivate: () => {
+				showAboutComputer = true;
+				windowManager.open('about-computer');
+			}
 		},
-		{ label: 'Trash', icon: '/icons/humanity/places/user-trash.svg' }
+		{
+			label: 'Trash',
+			icon: '/icons/humanity/places/user-trash.svg',
+			onactivate: () => window.open('https://tangled.org/desertthunder.dev/ibex', '_blank', 'noopener,noreferrer')
+		}
 	]);
 
 	const windowTitle = $derived(
@@ -30,6 +48,13 @@
 	const windowIcon = $derived(
 		accountSetup.isConfigured ? '/icons/humanity/apps/internet-feed-reader.svg' : '/icons/humanity/places/user-home.svg'
 	);
+	const mainWindow = $derived(windowManager.getWindow('main'));
+	const aboutWindow = $derived(windowManager.getWindow('about-computer'));
+
+	$effect(() => {
+		windowManager.setTitle('main', windowTitle, windowIcon);
+		showAboutComputer = windowManager.getWindow('about-computer')?.isOpen ?? false;
+	});
 
 	onMount(() => {
 		accountSetup.load();
@@ -52,34 +77,50 @@
 			{/each}
 		</section>
 
-		<div class="primary-window">
-			<AppWindow title={windowTitle} icon={windowIcon}>
-				{#if accountSetup.isConfigured}
-					{@render children()}
-				{:else}
-					<SetupDialog />
-				{/if}
-			</AppWindow>
-		</div>
-
-		{#if showAboutComputer}
-			<div class="about-window">
+		{#if mainWindow?.isOpen && !mainWindow.isMinimized}
+			<div class="primary-window" class:maximized={mainWindow.isMaximized} style:z-index={mainWindow.zIndex}>
 				<AppWindow
+					windowId="main"
+					title={windowTitle}
+					icon={windowIcon}
+					maximized={mainWindow.isMaximized}
+					onfocus={() => windowManager.focus('main')}
+					onminimize={() => windowManager.minimize('main')}
+					onmaximize={() => windowManager.toggleMaximize('main')}>
+					{#if accountSetup.isConfigured}
+						{@render children()}
+					{:else}
+						<SetupDialog />
+					{/if}
+				</AppWindow>
+			</div>
+		{/if}
+
+		{#if showAboutComputer && aboutWindow?.isOpen && !aboutWindow.isMinimized}
+			<div class="about-window" class:maximized={aboutWindow.isMaximized} style:z-index={aboutWindow.zIndex}>
+				<AppWindow
+					windowId="about-computer"
 					title="About This Computer"
 					icon="/icons/humanity/devices/computer.svg"
 					showMenubar={false}
 					showToolbar={false}
-					onclose={() => (showAboutComputer = false)}>
+					maximized={aboutWindow.isMaximized}
+					onfocus={() => windowManager.focus('about-computer')}
+					onminimize={() => windowManager.minimize('about-computer')}
+					onmaximize={() => windowManager.toggleMaximize('about-computer')}
+					onclose={() => windowManager.close('about-computer')}>
 					<AboutComputer />
 				</AppWindow>
 			</div>
 		{/if}
 
-		<!-- TODO: make this closeable -->
-		<aside class="sticky-note" aria-label="Design note">
-			<h2>Intrepid Ibex</h2>
-			<p>This app is a recreation of the spirit of Ubuntu 8.10</p>
-		</aside>
+		{#if showStickyNote}
+			<aside class="sticky-note" aria-label="Design note">
+				<button type="button" aria-label="Close note" onclick={() => (showStickyNote = false)}>×</button>
+				<h2>Intrepid Ibex</h2>
+				<p>This app is a recreation of the spirit of Ubuntu 8.10</p>
+			</aside>
+		{/if}
 	</main>
 </div>
 
@@ -113,6 +154,7 @@
 	}
 
 	.primary-window {
+		position: relative;
 		align-self: center;
 		height: min(42rem, calc(100vh - 6.5rem));
 		min-height: 28rem;
@@ -120,6 +162,18 @@
 
 	.primary-window :global(.app-window) {
 		height: 100%;
+	}
+
+	.primary-window.maximized,
+	.about-window.maximized {
+		position: fixed;
+		top: 1.75rem;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		width: auto;
+		height: auto;
+		min-height: 0;
 	}
 
 	.about-window {
@@ -136,6 +190,7 @@
 	}
 
 	.sticky-note {
+		position: relative;
 		align-self: end;
 		width: min(18rem, 100%);
 		margin-bottom: var(--space-8);
@@ -148,6 +203,17 @@
 		box-shadow:
 			0 12px 24px rgb(0 0 0 / 0.25),
 			0 1px 0 rgb(255 255 255 / 0.72) inset;
+	}
+
+	.sticky-note button {
+		position: absolute;
+		top: var(--space-1);
+		right: var(--space-1);
+		width: 1.25rem;
+		height: 1.25rem;
+		color: #6b4a12;
+		font-weight: 700;
+		cursor: default;
 	}
 
 	.sticky-note h2 {

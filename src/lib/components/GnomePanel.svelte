@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
+	import { windowManager } from '$lib/window-manager.svelte';
 
 	const launchers = [
 		{ label: 'Browser', icon: '/icons/humanity/apps/web-browser.svg' },
@@ -66,10 +67,16 @@
 	<div class="panel-spacer" aria-hidden="true"></div>
 
 	<section class="window-list" aria-label="Open windows">
-		<button class="active-window" type="button">
-			<img src="/icons/humanity/apps/internet-feed-reader.svg" alt="" width="16" height="16" />
-			<span>{accountSetup.isConfigured ? 'AT Protocol Collections' : 'AT Protocol Account Setup'}</span>
-		</button>
+		{#each windowManager.openWindows as window (window.id)}
+			<button
+				class="active-window"
+				class:minimized={window.isMinimized}
+				type="button"
+				onclick={() => windowManager.restore(window.id)}>
+				<img src={window.icon} alt="" width="16" height="16" />
+				<span>{window.title}</span>
+			</button>
+		{/each}
 	</section>
 
 	<aside class="panel-tray" aria-label="Status tray">
@@ -224,16 +231,22 @@
 	}
 
 	.window-list {
-		min-width: min(28vw, 19rem);
+		gap: var(--space-1);
+		min-width: min(32vw, 24rem);
 	}
 
 	.active-window {
-		width: 100%;
+		min-width: 8rem;
+		max-width: 13rem;
 		color: #23170f;
 		background: linear-gradient(#f5e7cb, #b99d78);
 		border-color: #fff3dc #755232 #4b2e19 #e8d3b4;
 		box-shadow: var(--shadow-sunken);
 		text-shadow: 0 1px 0 rgb(255 255 255 / 0.65);
+	}
+
+	.active-window.minimized {
+		opacity: 0.72;
 	}
 
 	.active-window span {
