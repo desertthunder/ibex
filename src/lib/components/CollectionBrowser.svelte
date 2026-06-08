@@ -60,10 +60,7 @@
 			<div>
 				<p class="eyebrow">Selected collection</p>
 				<h2>app.bsky.feed.post</h2>
-				<p>
-					Browse posts as if they were tidy Nautilus files. This is a static design pass for the ATProto desktop
-					browser.
-				</p>
+				<p>Browse posts as if they were tidy Nautilus files.</p>
 			</div>
 		</div>
 

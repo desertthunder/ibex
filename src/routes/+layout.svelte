@@ -1,8 +1,11 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import favicon from '$lib/assets/favicon.svg';
 	import AppWindow from '$lib/components/AppWindow.svelte';
 	import DesktopIcon from '$lib/components/DesktopIcon.svelte';
 	import GnomePanel from '$lib/components/GnomePanel.svelte';
+	import SetupDialog from '$lib/components/SetupDialog.svelte';
 	import '$lib/styles/style.css';
 
 	let { children } = $props();
@@ -13,6 +16,17 @@
 		{ label: 'Computer', icon: '/icons/humanity/devices/computer.svg' },
 		{ label: 'Trash', icon: '/icons/humanity/places/user-trash.svg' }
 	];
+
+	const windowTitle = $derived(
+		accountSetup.isConfigured ? 'AT Protocol Collections - Intrepid Ibex' : 'AT Protocol Account Setup'
+	);
+	const windowIcon = $derived(
+		accountSetup.isConfigured ? '/icons/humanity/apps/internet-feed-reader.svg' : '/icons/humanity/places/user-home.svg'
+	);
+
+	onMount(() => {
+		accountSetup.load();
+	});
 </script>
 
 <svelte:head>
@@ -32,14 +46,18 @@
 		</section>
 
 		<div class="primary-window">
-			<AppWindow title="AT Protocol Collections - Intrepid Ibex" icon="/icons/humanity/apps/internet-feed-reader.svg">
-				{@render children()}
+			<AppWindow title={windowTitle} icon={windowIcon}>
+				{#if accountSetup.isConfigured}
+					{@render children()}
+				{:else}
+					<SetupDialog />
+				{/if}
 			</AppWindow>
 		</div>
 
 		<aside class="sticky-note" aria-label="Design note">
 			<h2>Intrepid Ibex</h2>
-			<p>Static GNOME recreation: top panel, Humanity icons, tan window chrome, and collection folders.</p>
+			<p>This app is a recreation of the spirit of Ubuntu 8.10</p>
 		</aside>
 	</main>
 </div>
