@@ -1,10 +1,16 @@
 <script lang="ts">
-	type Props = { label: string; icon: string; selected?: boolean };
+	type Props = { label: string; icon: string; selected?: boolean; onactivate?: () => void };
 
-	let { label, icon, selected = false }: Props = $props();
+	let { label, icon, selected = false, onactivate }: Props = $props();
 </script>
 
-<button class:selected class="desktop-icon" type="button" aria-label={label}>
+<button
+	class:selected
+	class="desktop-icon"
+	type="button"
+	aria-label={label}
+	onclick={onactivate}
+	ondblclick={onactivate}>
 	<img src={icon} alt="" width="48" height="48" />
 	<span>{label}</span>
 </button>

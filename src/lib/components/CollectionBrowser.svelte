@@ -1,66 +1,69 @@
 <script lang="ts">
-	const collections = [
-		{
-			name: 'app.bsky.feed.post',
-			count: '18,204',
-			icon: '/icons/humanity/apps/internet-feed-reader.svg',
-			active: true
-		},
-		{ name: 'app.bsky.actor.profile', count: '1,282', icon: '/icons/humanity/places/user-home.svg' },
-		{ name: 'app.bsky.graph.follow', count: '6,914', icon: '/icons/humanity/places/folder.svg' },
-		{ name: 'chat.bsky.convo.defs', count: '126', icon: '/icons/humanity/apps/evolution-mail.svg' },
-		{ name: 'com.atproto.repo.strongRef', count: '42', icon: '/icons/humanity/mimes/text-x-generic.svg' }
-	];
+	import { onMount } from 'svelte';
+	import { accountSetup } from '$lib/atproto/setup.svelte';
+	import { repoBrowser } from '$lib/atproto/repo.svelte';
 
-	const records = [
-		{
-			author: '@intrepid-ibex.test',
-			time: '10:08',
-			title: 'Classic GNOME shell mockup',
-			body: 'Panels, textured chrome, collection folders, and a very 2008 address bar are now static and ready to wire into AT Protocol data.'
-		},
-		{
-			author: '@desktop.example',
-			time: '09:44',
-			title: 'Humanity icon import',
-			body: 'Using archived Ubuntu Humanity assets for launchers, desktop shortcuts, window icons, and status tray affordances.'
-		},
-		{
-			author: '@repo.tools',
-			time: 'Yesterday',
-			title: 'Collection-first browsing',
-			body: 'Each application can become a focused browser for a different collection namespace without losing the GNOME desktop metaphor.'
+	onMount(() => {
+		const identity = accountSetup.identity;
+
+		if (identity) {
+			repoBrowser.load(identity);
 		}
-	];
+	});
+
+	function selectCollection(collectionName: string) {
+		const identity = accountSetup.identity;
+
+		if (identity) {
+			repoBrowser.selectCollection(identity, collectionName);
+		}
+	}
 </script>
 
 <div class="collection-browser">
 	<aside class="sidebar" aria-label="Collections">
 		<header>
 			<h2>Collections</h2>
-			<p>at:// repo folders</p>
+			<p>{accountSetup.identity?.handle ?? 'at:// repo folders'}</p>
 		</header>
 
 		<ul>
-			{#each collections as collection (collection.name)}
-				<li>
-					<button class:active={collection.active} type="button">
-						<img src={collection.icon} alt="" width="24" height="24" />
-						<span>{collection.name}</span>
-						<small>{collection.count}</small>
-					</button>
-				</li>
-			{/each}
+			{#if repoBrowser.isLoadingCollections}
+				<li class="empty-row">Loading collections…</li>
+			{:else}
+				{#each repoBrowser.collections as collection (collection.name)}
+					<li>
+						<button
+							class:active={collection.name === repoBrowser.selectedCollection}
+							type="button"
+							onclick={() => selectCollection(collection.name)}>
+							<img src={collection.icon} alt="" width="24" height="24" />
+							<span>{collection.name}</span>
+							<small>{collection.loadedCount ?? 'repo'}</small>
+						</button>
+					</li>
+				{/each}
+			{/if}
 		</ul>
 	</aside>
 
 	<section class="record-pane" aria-label="Collection records">
 		<div class="summary-card">
-			<img src="/icons/humanity/apps/internet-feed-reader.svg" alt="" width="48" height="48" />
+			<img
+				src={repoBrowser.selectedSummary?.icon ?? '/icons/humanity/apps/internet-feed-reader.svg'}
+				alt=""
+				width="48"
+				height="48" />
 			<div>
 				<p class="eyebrow">Selected collection</p>
-				<h2>app.bsky.feed.post</h2>
-				<p>Browse posts as if they were tidy Nautilus files.</p>
+				<h2>{repoBrowser.selectedCollection ?? 'No collection selected'}</h2>
+				<p>
+					{#if repoBrowser.isLoadingRecords}
+						Fetching public records from {accountSetup.identity?.pds ?? 'the public API'}…
+					{:else}
+						Browse records as if they were tidy Nautilus files.
+					{/if}
+				</p>
 			</div>
 		</div>
 
@@ -71,17 +74,25 @@
 				<span>Modified</span>
 			</header>
 
-			{#each records as record (record.title)}
-				<article>
-					<img src="/icons/humanity/mimes/text-x-generic.svg" alt="" width="32" height="32" />
-					<div>
-						<h3>{record.title}</h3>
-						<p>{record.body}</p>
-					</div>
-					<strong>{record.author}</strong>
-					<time>{record.time}</time>
-				</article>
-			{/each}
+			{#if repoBrowser.error}
+				<p class="message error">{repoBrowser.error}</p>
+			{:else if repoBrowser.isLoadingRecords}
+				<p class="message">Loading records…</p>
+			{:else if repoBrowser.records.length === 0}
+				<p class="message">No public records found for this collection.</p>
+			{:else}
+				{#each repoBrowser.records as record (record.uri)}
+					<article>
+						<img src="/icons/humanity/mimes/text-x-generic.svg" alt="" width="32" height="32" />
+						<div>
+							<h3>{record.title}</h3>
+							<p>{record.body}</p>
+						</div>
+						<strong>{record.author}</strong>
+						<time>{record.modified}</time>
+					</article>
+				{/each}
+			{/if}
 		</div>
 	</section>
 </div>
@@ -160,6 +171,20 @@
 	.sidebar small {
 		font-size: var(--text-0);
 		opacity: 0.82;
+	}
+
+	.empty-row,
+	.message {
+		padding: var(--space-3);
+		color: var(--text-muted);
+		font-size: var(--text-1);
+	}
+
+	.message.error {
+		color: #721c0d;
+		background: #f7d6c9;
+		border: 1px solid #b55a38;
+		border-radius: var(--radius-2);
 	}
 
 	.record-pane {

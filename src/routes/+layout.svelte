@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import favicon from '$lib/assets/favicon.svg';
+	import AboutComputer from '$lib/components/AboutComputer.svelte';
 	import AppWindow from '$lib/components/AppWindow.svelte';
 	import DesktopIcon from '$lib/components/DesktopIcon.svelte';
 	import GnomePanel from '$lib/components/GnomePanel.svelte';
@@ -9,13 +10,19 @@
 	import '$lib/styles/style.css';
 
 	let { children } = $props();
+	let showAboutComputer = $state(false);
 
-	const shortcuts = [
+	const shortcuts = $derived([
 		{ label: 'ibex Home', icon: '/icons/humanity/places/user-home.svg', selected: true },
 		{ label: 'Collections', icon: '/icons/humanity/places/folder.svg' },
-		{ label: 'Computer', icon: '/icons/humanity/devices/computer.svg' },
+		{
+			label: 'Computer',
+			icon: '/icons/humanity/devices/computer.svg',
+			selected: showAboutComputer,
+			onactivate: () => (showAboutComputer = true)
+		},
 		{ label: 'Trash', icon: '/icons/humanity/places/user-trash.svg' }
-	];
+	]);
 
 	const windowTitle = $derived(
 		accountSetup.isConfigured ? 'AT Protocol Collections - Intrepid Ibex' : 'AT Protocol Account Setup'
@@ -55,6 +62,20 @@
 			</AppWindow>
 		</div>
 
+		{#if showAboutComputer}
+			<div class="about-window">
+				<AppWindow
+					title="About This Computer"
+					icon="/icons/humanity/devices/computer.svg"
+					showMenubar={false}
+					showToolbar={false}
+					onclose={() => (showAboutComputer = false)}>
+					<AboutComputer />
+				</AppWindow>
+			</div>
+		{/if}
+
+		<!-- TODO: make this closeable -->
 		<aside class="sticky-note" aria-label="Design note">
 			<h2>Intrepid Ibex</h2>
 			<p>This app is a recreation of the spirit of Ubuntu 8.10</p>
@@ -101,6 +122,19 @@
 		height: 100%;
 	}
 
+	.about-window {
+		position: absolute;
+		top: min(8rem, 16vh);
+		left: min(46rem, 52vw);
+		z-index: 3;
+		width: min(34rem, calc(100vw - 2rem));
+		height: min(28rem, calc(100vh - 5rem));
+	}
+
+	.about-window :global(.app-window) {
+		height: 100%;
+	}
+
 	.sticky-note {
 		align-self: end;
 		width: min(18rem, 100%);
@@ -132,6 +166,11 @@
 			padding: var(--space-3);
 		}
 
+		.about-window {
+			left: auto;
+			right: var(--space-3);
+		}
+
 		.sticky-note {
 			display: none;
 		}
@@ -149,6 +188,14 @@
 		.primary-window {
 			height: calc(100vh - 4.25rem);
 			min-height: 0;
+		}
+
+		.about-window {
+			top: var(--space-3);
+			right: var(--space-3);
+			left: var(--space-3);
+			width: auto;
+			height: min(28rem, calc(100vh - 6rem));
 		}
 	}
 </style>

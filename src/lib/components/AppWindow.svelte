@@ -1,41 +1,104 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	type Props = { title: string; icon: string };
 
-	let { title, icon, children }: Props & { children: Snippet } = $props();
+	type Props = {
+		title: string;
+		icon: string;
+		address?: string;
+		movable?: boolean;
+		showMenubar?: boolean;
+		showToolbar?: boolean;
+		onclose?: () => void;
+	};
+
+	let {
+		title,
+		icon,
+		address = 'at://ubuntu.example/app.bsky.feed.post',
+		movable = true,
+		showMenubar = true,
+		showToolbar = true,
+		onclose,
+		children
+	}: Props & { children: Snippet } = $props();
+
+	let x = $state(0);
+	let y = $state(0);
+	let drag = $state<{ pointerId: number; startX: number; startY: number; originX: number; originY: number } | null>(
+		null
+	);
+
+	function startDrag(event: PointerEvent) {
+		if (!movable || event.button !== 0 || event.target instanceof HTMLButtonElement) {
+			return;
+		}
+
+		drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, originX: x, originY: y };
+
+		(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+	}
+
+	function moveDrag(event: PointerEvent) {
+		if (!drag || event.pointerId !== drag.pointerId) {
+			return;
+		}
+
+		x = drag.originX + event.clientX - drag.startX;
+		y = drag.originY + event.clientY - drag.startY;
+	}
+
+	function stopDrag(event: PointerEvent) {
+		if (!drag || event.pointerId !== drag.pointerId) {
+			return;
+		}
+
+		(event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId);
+		drag = null;
+	}
 </script>
 
-<section class="app-window" aria-label={title}>
-	<header class="titlebar">
+<section class="app-window" class:dragging={drag} aria-label={title} style:transform={`translate(${x}px, ${y}px)`}>
+	<header
+		class="titlebar"
+		role="group"
+		aria-label="Window title bar"
+		onpointerdown={startDrag}
+		onpointermove={moveDrag}
+		onpointerup={stopDrag}
+		onpointercancel={stopDrag}>
 		<div class="window-title">
 			<img src={icon} alt="" width="18" height="18" />
 			<h1>{title}</h1>
 		</div>
-		<div class="window-controls" aria-hidden="true">
-			<span></span>
-			<span></span>
-			<span></span>
+		<div class="window-controls" aria-label="Window controls">
+			<button type="button" aria-label="Minimize" tabindex="-1"></button>
+			<button type="button" aria-label="Maximize" tabindex="-1"></button>
+			<button type="button" aria-label="Close" tabindex={onclose ? 0 : -1} onclick={onclose}></button>
 		</div>
 	</header>
 
-	<nav class="menubar" aria-label="Application menu">
-		<button type="button">Collection</button>
-		<button type="button">Navigate</button>
-		<button type="button">View</button>
-		<button type="button">Bookmarks</button>
-		<button type="button">Help</button>
-	</nav>
+	{#if showMenubar}
+		<nav class="menubar" aria-label="Application menu">
+			<button type="button">Collection</button>
+			<button type="button">Navigate</button>
+			<button type="button">View</button>
+			<button type="button">Bookmarks</button>
+			<button type="button">Help</button>
+		</nav>
+	{/if}
 
-	<div class="toolbar" aria-label="Application toolbar">
-		<button type="button"><span aria-hidden="true">◀</span> Back</button>
-		<button type="button"><span aria-hidden="true">▶</span> Forward</button>
-		<button type="button"
-			><img src="/icons/humanity/actions/mail-send-receive.svg" alt="" width="18" height="18" /> Sync</button>
-		<label>
-			<span class="sr-only">Address</span>
-			<input value="at://ubuntu.example/app.bsky.feed.post" readonly />
-		</label>
-	</div>
+	{#if showToolbar}
+		<div class="toolbar" aria-label="Application toolbar">
+			<button type="button"><span aria-hidden="true">◀</span> Back</button>
+			<button type="button"><span aria-hidden="true">▶</span> Forward</button>
+			<button type="button"
+				><img src="/icons/humanity/actions/mail-send-receive.svg" alt="" width="18" height="18" /> Sync</button>
+			<label>
+				<span class="sr-only">Address</span>
+				<input value={address} readonly />
+			</label>
+		</div>
+	{/if}
 
 	<div class="content">
 		{@render children()}
@@ -51,6 +114,11 @@
 		border: 1px solid #2a170d;
 		border-radius: var(--radius-3) var(--radius-3) var(--radius-2) var(--radius-2);
 		box-shadow: var(--shadow-window);
+		will-change: transform;
+	}
+
+	.app-window.dragging {
+		user-select: none;
 	}
 
 	.titlebar {
@@ -65,6 +133,8 @@
 			linear-gradient(var(--window-title-start), var(--window-title-end));
 		border-bottom: 1px solid #1b0f09;
 		text-shadow: 0 1px 1px rgb(0 0 0 / 0.9);
+		cursor: move;
+		touch-action: none;
 	}
 
 	.window-title {
@@ -88,13 +158,18 @@
 		gap: 5px;
 	}
 
-	.window-controls span {
+	.window-controls button {
 		width: 14px;
 		height: 14px;
 		border: 1px solid #1e120a;
 		border-radius: var(--radius-round);
 		background: radial-gradient(circle at 35% 30%, #fff4d0, #cf7b1f 45%, #6d3412 78%);
 		box-shadow: 0 1px 0 rgb(255 255 255 / 0.24) inset;
+		cursor: default;
+	}
+
+	.window-controls button:hover {
+		filter: brightness(1.12);
 	}
 
 	.menubar,

@@ -1,9 +1,17 @@
 <script lang="ts">
+	import { accountSetup } from '$lib/atproto/setup.svelte';
+	import { repoBrowser } from '$lib/atproto/repo.svelte';
+
 	const launchers = [
 		{ label: 'Browser', icon: '/icons/humanity/apps/web-browser.svg' },
 		{ label: 'Mail', icon: '/icons/humanity/apps/evolution-mail.svg' },
 		{ label: 'Terminal', icon: '/icons/humanity/apps/utilities-terminal.svg' }
 	];
+
+	function changeAccount() {
+		repoBrowser.reset();
+		accountSetup.reset();
+	}
 </script>
 
 <header class="gnome-panel" aria-label="GNOME top panel">
@@ -12,8 +20,39 @@
 			<img src="/icons/humanity/apps/system-file-manager.svg" alt="" width="20" height="20" />
 			<span>Applications</span>
 		</button>
-		<button type="button">Places</button>
-		<button type="button">System</button>
+
+		<details class="panel-menu">
+			<summary>Places</summary>
+			<div class="menu-popover places-popover">
+				<p class="menu-heading">Collections</p>
+				{#if repoBrowser.collections.length > 0}
+					{#each repoBrowser.collections.slice(0, 10) as collection (collection.name)}
+						<button
+							type="button"
+							onclick={() =>
+								accountSetup.identity && repoBrowser.selectCollection(accountSetup.identity, collection.name)}>
+							<img src={collection.icon} alt="" width="16" height="16" />
+							<span>{collection.name}</span>
+						</button>
+					{/each}
+				{:else}
+					<span class="menu-empty">Collections appear here after setup.</span>
+				{/if}
+			</div>
+		</details>
+
+		<details class="panel-menu">
+			<summary>System</summary>
+			<div class="menu-popover system-popover">
+				{#if accountSetup.identity}
+					<p class="menu-heading">Signed in as @{accountSetup.identity.handle}</p>
+				{/if}
+				<button type="button" onclick={changeAccount}>
+					<img src="/icons/humanity/places/user-home.svg" alt="" width="16" height="16" />
+					<span>Change Account…</span>
+				</button>
+			</div>
+		</details>
 	</nav>
 
 	<div class="panel-launchers" aria-label="Launchers">
@@ -29,11 +68,21 @@
 	<section class="window-list" aria-label="Open windows">
 		<button class="active-window" type="button">
 			<img src="/icons/humanity/apps/internet-feed-reader.svg" alt="" width="16" height="16" />
-			<span>AT Protocol Collections</span>
+			<span>{accountSetup.isConfigured ? 'AT Protocol Collections' : 'AT Protocol Account Setup'}</span>
 		</button>
 	</section>
 
 	<aside class="panel-tray" aria-label="Status tray">
+		{#if accountSetup.identity}
+			<button class="account-chip" type="button" onclick={changeAccount} title="Change account">
+				{#if accountSetup.identity.avatar}
+					<img src={accountSetup.identity.avatar} alt="" width="16" height="16" />
+				{:else}
+					<img src="/icons/humanity/places/user-home.svg" alt="" width="16" height="16" />
+				{/if}
+				<span>@{accountSetup.identity.handle}</span>
+			</button>
+		{/if}
 		<img src="/icons/humanity/status/network-wireless-encrypted.svg" alt="Network connected" width="16" height="16" />
 		<img src="/icons/humanity/status/audio-volume-medium.svg" alt="Volume" width="16" height="16" />
 		<time datetime="2008-10-30T10:10">Thu Oct 30, 10:10 AM</time>
@@ -42,6 +91,8 @@
 
 <style>
 	.gnome-panel {
+		position: relative;
+		z-index: 10;
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
@@ -71,8 +122,10 @@
 	}
 
 	.panel-menus button,
+	.panel-menus summary,
 	.panel-launchers button,
-	.active-window {
+	.active-window,
+	.account-chip {
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
@@ -84,9 +137,70 @@
 	}
 
 	.panel-menus button:hover,
-	.panel-launchers button:hover {
+	.panel-menus summary:hover,
+	.panel-menu[open] summary,
+	.panel-launchers button:hover,
+	.account-chip:hover {
 		background: rgb(255 238 203 / 0.16);
 		border-color: rgb(255 255 255 / 0.18) rgb(0 0 0 / 0.35) rgb(0 0 0 / 0.45) rgb(255 255 255 / 0.16);
+	}
+
+	.panel-menu {
+		position: relative;
+	}
+
+	.panel-menu summary {
+		list-style: none;
+	}
+
+	.panel-menu summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.menu-popover {
+		position: absolute;
+		top: calc(100% + 3px);
+		left: 0;
+		display: grid;
+		gap: 1px;
+		min-width: 17rem;
+		padding: var(--space-1);
+		color: var(--text);
+		background: linear-gradient(#f4e6cc, #cfb58c);
+		border: 1px solid #4d2c17;
+		box-shadow: 0 10px 22px rgb(0 0 0 / 0.42);
+		text-shadow: none;
+	}
+
+	.menu-popover button {
+		justify-content: flex-start;
+		width: 100%;
+		height: 1.6rem;
+		color: var(--text);
+	}
+
+	.menu-popover button:hover {
+		color: white;
+		background: var(--selection);
+		border-color: transparent;
+	}
+
+	.menu-popover span {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.menu-heading,
+	.menu-empty {
+		padding: var(--space-1) var(--space-2);
+		color: var(--text-muted);
+		font-size: var(--text-0);
+		font-weight: 700;
+	}
+
+	.system-popover {
+		min-width: 13rem;
 	}
 
 	.applications-menu {
@@ -132,13 +246,29 @@
 		gap: var(--space-2);
 	}
 
+	.account-chip {
+		max-width: 12rem;
+		padding: 0 var(--space-1);
+	}
+
+	.account-chip img {
+		border-radius: var(--radius-1);
+	}
+
+	.account-chip span {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
 	.panel-tray time {
 		font-variant-numeric: tabular-nums;
 	}
 
 	@media (max-width: 760px) {
-		.panel-menus button:not(.applications-menu),
-		.window-list {
+		.panel-menus .panel-menu,
+		.window-list,
+		.account-chip span {
 			display: none;
 		}
 	}
