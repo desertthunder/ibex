@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
-	import { repoBrowser } from '$lib/atproto/repo.svelte';
+	import { repoBrowser, type RepoRecordSummary } from '$lib/atproto/repo.svelte';
+	import { windowManager } from '$lib/window-manager.svelte';
 
 	onMount(() => {
 		const identity = accountSetup.identity;
@@ -17,6 +18,12 @@
 		if (identity) {
 			repoBrowser.selectCollection(identity, collectionName);
 		}
+	}
+
+	function openRecord(record: RepoRecordSummary) {
+		repoBrowser.selectedRecord = record;
+		windowManager.setTitle('gedit', `${record.rkey}.json - gedit`, '/icons/humanity/apps/accessories-text-editor.svg');
+		windowManager.open('gedit');
 	}
 </script>
 
@@ -82,7 +89,7 @@
 				<p class="message">No public records found for this collection.</p>
 			{:else}
 				{#each repoBrowser.records as record (record.uri)}
-					<article>
+					<button class="record-row" type="button" onclick={() => openRecord(record)}>
 						<img src="/icons/humanity/mimes/text-x-generic.svg" alt="" width="32" height="32" />
 						<div>
 							<h3>{record.title}</h3>
@@ -90,7 +97,7 @@
 						</div>
 						<strong>{record.author}</strong>
 						<time>{record.modified}</time>
-					</article>
+					</button>
 				{/each}
 			{/if}
 		</div>
@@ -216,7 +223,7 @@
 	}
 
 	.record-list > header,
-	.record-list article {
+	.record-row {
 		display: grid;
 		grid-template-columns: minmax(14rem, 1fr) minmax(10rem, 14rem) 5rem;
 		gap: var(--space-3);
@@ -234,7 +241,7 @@
 		text-transform: uppercase;
 	}
 
-	.record-list article {
+	.record-row {
 		grid-template-columns: 32px minmax(14rem, 1fr) minmax(10rem, 14rem) 5rem;
 		padding: var(--space-3);
 		background: #fffdf8;
@@ -243,17 +250,23 @@
 		border-left: 1px solid #d7c4a4;
 	}
 
-	.record-list article:nth-child(odd) {
+	.record-row:nth-child(odd) {
 		background: #f7eddb;
 	}
 
-	.record-list article:hover {
+	.record-row:hover {
 		background: #f1d09d;
 	}
 
 	.record-list h3 {
 		font-size: var(--text-2);
 		line-height: var(--leading-tight);
+	}
+
+	.record-row {
+		width: 100%;
+		text-align: left;
+		cursor: default;
 	}
 
 	.record-list strong,
@@ -277,7 +290,7 @@
 		}
 
 		.record-list > header,
-		.record-list article {
+		.record-row {
 			grid-template-columns: 32px minmax(0, 1fr);
 		}
 

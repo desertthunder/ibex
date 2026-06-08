@@ -10,6 +10,7 @@
 	];
 
 	function changeAccount() {
+		windowManager.close('gedit');
 		repoBrowser.reset();
 		accountSetup.reset();
 	}

@@ -12,6 +12,9 @@ export type RepoRecordSummary = {
 	body: string;
 	author: string;
 	modified: string;
+	collection: string;
+	rkey: string;
+	json: string;
 };
 
 class RepoBrowserState {
@@ -22,6 +25,7 @@ class RepoBrowserState {
 	isLoadingRecords = $state(false);
 	error = $state<string | null>(null);
 	loadedDid = $state<string | null>(null);
+	selectedRecord = $state<RepoRecordSummary | null>(null);
 
 	get selectedSummary() {
 		return this.collections.find((collection) => collection.name === this.selectedCollection) ?? null;
@@ -92,6 +96,7 @@ class RepoBrowserState {
 		this.collections = [];
 		this.selectedCollection = null;
 		this.records = [];
+		this.selectedRecord = null;
 		this.isLoadingCollections = false;
 		this.isLoadingRecords = false;
 		this.error = null;
@@ -133,7 +138,10 @@ function summarizeRecord(record: UnknownRecord, handle: string): RepoRecordSumma
 		title,
 		body: truncate(body.replaceAll('\n', ' '), 140),
 		author: `@${handle}`,
-		modified: formatRecordTime(createdAt)
+		modified: formatRecordTime(createdAt),
+		collection: collectionFromUri(record.uri),
+		rkey: recordKeyFromUri(record.uri),
+		json: JSON.stringify(record.value, null, 2)
 	};
 }
 

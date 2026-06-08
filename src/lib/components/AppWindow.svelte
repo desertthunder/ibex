@@ -15,6 +15,7 @@
 		onfocus?: () => void;
 		onminimize?: () => void;
 		onmaximize?: () => void;
+		resizable?: boolean;
 		onclose?: () => void;
 	};
 
@@ -30,28 +31,40 @@
 		onfocus,
 		onminimize,
 		onmaximize,
+		resizable = true,
 		onclose,
 		children
 	}: Props & { children: Snippet } = $props();
 
 	let x = $state(0);
 	let y = $state(0);
+	let width = $state<number | null>(null);
+	let height = $state<number | null>(null);
 	let drag = $state<{ pointerId: number; startX: number; startY: number; originX: number; originY: number } | null>(
 		null
 	);
+	let resize = $state<{
+		pointerId: number;
+		startX: number;
+		startY: number;
+		originWidth: number;
+		originHeight: number;
+	} | null>(null);
 
-	const storageKey = $derived(windowId ? `intrepid-ibex:window-position:${windowId}` : null);
+	const storageKey = $derived(windowId ? `intrepid-ibex:window-geometry:${windowId}` : null);
 
 	onMount(() => {
 		if (!browser || !storageKey) return;
 
-		const storedPosition = localStorage.getItem(storageKey);
-		if (!storedPosition) return;
+		const storedGeometry = localStorage.getItem(storageKey);
+		if (!storedGeometry) return;
 
 		try {
-			const position = JSON.parse(storedPosition) as { x?: number; y?: number };
-			x = typeof position.x === 'number' ? position.x : 0;
-			y = typeof position.y === 'number' ? position.y : 0;
+			const geometry = JSON.parse(storedGeometry) as { x?: number; y?: number; width?: number; height?: number };
+			x = typeof geometry.x === 'number' ? geometry.x : 0;
+			y = typeof geometry.y === 'number' ? geometry.y : 0;
+			width = typeof geometry.width === 'number' ? geometry.width : null;
+			height = typeof geometry.height === 'number' ? geometry.height : null;
 		} catch {
 			localStorage.removeItem(storageKey);
 		}
@@ -86,8 +99,53 @@
 		(event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId);
 		drag = null;
 
+		persistGeometry();
+	}
+
+	function startResize(event: PointerEvent) {
+		onfocus?.();
+
+		if (!resizable || maximized || event.button !== 0) {
+			return;
+		}
+
+		const windowElement = (event.currentTarget as HTMLElement).closest('.app-window');
+		if (!windowElement) return;
+
+		const bounds = windowElement.getBoundingClientRect();
+		resize = {
+			pointerId: event.pointerId,
+			startX: event.clientX,
+			startY: event.clientY,
+			originWidth: bounds.width,
+			originHeight: bounds.height
+		};
+
+		(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+	}
+
+	function moveResize(event: PointerEvent) {
+		if (!resize || event.pointerId !== resize.pointerId) {
+			return;
+		}
+
+		width = Math.max(320, resize.originWidth + event.clientX - resize.startX);
+		height = Math.max(220, resize.originHeight + event.clientY - resize.startY);
+	}
+
+	function stopResize(event: PointerEvent) {
+		if (!resize || event.pointerId !== resize.pointerId) {
+			return;
+		}
+
+		(event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId);
+		resize = null;
+		persistGeometry();
+	}
+
+	function persistGeometry() {
 		if (browser && storageKey) {
-			localStorage.setItem(storageKey, JSON.stringify({ x, y }));
+			localStorage.setItem(storageKey, JSON.stringify({ x, y, width, height }));
 		}
 	}
 </script>
@@ -95,10 +153,13 @@
 <section
 	class="app-window"
 	class:dragging={drag}
+	class:resizing={resize}
 	class:maximized
 	aria-label={title}
 	role="group"
 	style:transform={maximized ? undefined : `translate(${x}px, ${y}px)`}
+	style:width={maximized || width === null ? undefined : `${width}px`}
+	style:height={maximized || height === null ? undefined : `${height}px`}
 	onpointerdown={onfocus}>
 	<header
 		class="titlebar"
@@ -113,13 +174,20 @@
 			<h1>{title}</h1>
 		</div>
 		<div class="window-controls" aria-label="Window controls">
-			<button type="button" aria-label="Minimize" tabindex={onminimize ? 0 : -1} onclick={onminimize}></button>
 			<button
+				class="minimize-control"
+				type="button"
+				aria-label="Minimize"
+				tabindex={onminimize ? 0 : -1}
+				onclick={onminimize}></button>
+			<button
+				class="maximize-control"
 				type="button"
 				aria-label={maximized ? 'Restore' : 'Maximize'}
 				tabindex={onmaximize ? 0 : -1}
 				onclick={onmaximize}></button>
-			<button type="button" aria-label="Close" tabindex={onclose ? 0 : -1} onclick={onclose}></button>
+			<button class="close-control" type="button" aria-label="Close" tabindex={onclose ? 0 : -1} onclick={onclose}
+			></button>
 		</div>
 	</header>
 
@@ -149,12 +217,27 @@
 	<div class="content">
 		{@render children()}
 	</div>
+
+	{#if resizable && !maximized}
+		<div
+			class="resize-handle"
+			role="separator"
+			aria-label="Resize window"
+			onpointerdown={startResize}
+			onpointermove={moveResize}
+			onpointerup={stopResize}
+			onpointercancel={stopResize}>
+		</div>
+	{/if}
 </section>
 
 <style>
 	.app-window {
+		position: relative;
 		display: grid;
 		grid-template-rows: auto auto auto minmax(0, 1fr);
+		min-width: 320px;
+		min-height: 220px;
 		overflow: hidden;
 		background: var(--window-surface);
 		border: 1px solid #2a170d;
@@ -163,11 +246,14 @@
 		will-change: transform;
 	}
 
-	.app-window.dragging {
+	.app-window.dragging,
+	.app-window.resizing {
 		user-select: none;
 	}
 
 	.app-window.maximized {
+		width: 100%;
+		height: 100%;
 		border-radius: 0;
 		transform: none;
 	}
@@ -217,10 +303,34 @@
 		background: radial-gradient(circle at 35% 30%, #fff4d0, #cf7b1f 45%, #6d3412 78%);
 		box-shadow: 0 1px 0 rgb(255 255 255 / 0.24) inset;
 		cursor: default;
+		transition:
+			filter 120ms ease,
+			box-shadow 120ms ease,
+			background 120ms ease;
 	}
 
-	.window-controls button:hover {
-		filter: brightness(1.12);
+	.window-controls button:hover,
+	.window-controls button:focus-visible {
+		filter: brightness(1.16) saturate(1.1);
+		box-shadow:
+			0 1px 0 rgb(255 255 255 / 0.42) inset,
+			0 0 0 1px rgb(255 238 186 / 0.45),
+			0 0 7px rgb(255 194 78 / 0.65);
+	}
+
+	.minimize-control:hover,
+	.minimize-control:focus-visible {
+		background: radial-gradient(circle at 35% 30%, #fff8ce, #fce94f 42%, #9b7f00 78%);
+	}
+
+	.maximize-control:hover,
+	.maximize-control:focus-visible {
+		background: radial-gradient(circle at 35% 30%, #efffd4, #8ae234 42%, #3b7c09 78%);
+	}
+
+	.close-control:hover,
+	.close-control:focus-visible {
+		background: radial-gradient(circle at 35% 30%, #ffd6c9, #ef2929 42%, #660000 78%);
 	}
 
 	.menubar,
@@ -290,6 +400,25 @@
 		overflow: hidden;
 		padding: var(--space-3);
 		background: var(--window-surface);
+	}
+
+	.resize-handle {
+		position: absolute;
+		right: 0;
+		bottom: 0;
+		width: 16px;
+		height: 16px;
+		cursor: nwse-resize;
+		touch-action: none;
+		background:
+			linear-gradient(135deg, transparent 0 48%, rgb(77 44 23 / 0.65) 49% 54%, transparent 55%),
+			linear-gradient(135deg, transparent 0 66%, rgb(255 255 255 / 0.45) 67% 72%, transparent 73%);
+	}
+
+	.resize-handle:hover {
+		background:
+			linear-gradient(135deg, transparent 0 48%, rgb(196 91 18 / 0.85) 49% 54%, transparent 55%),
+			linear-gradient(135deg, transparent 0 66%, rgb(255 246 213 / 0.8) 67% 72%, transparent 73%);
 	}
 
 	@media (max-width: 760px) {

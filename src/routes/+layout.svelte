@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { repoBrowser } from '$lib/atproto/repo.svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import favicon from '$lib/assets/favicon.svg';
 	import { windowManager } from '$lib/window-manager.svelte';
 	import AboutComputer from '$lib/components/AboutComputer.svelte';
 	import AppWindow from '$lib/components/AppWindow.svelte';
 	import DesktopIcon from '$lib/components/DesktopIcon.svelte';
+	import Gedit from '$lib/components/Gedit.svelte';
 	import GnomePanel from '$lib/components/GnomePanel.svelte';
 	import SetupDialog from '$lib/components/SetupDialog.svelte';
 	import '$lib/styles/style.css';
@@ -50,10 +52,19 @@
 	);
 	const mainWindow = $derived(windowManager.getWindow('main'));
 	const aboutWindow = $derived(windowManager.getWindow('about-computer'));
+	const geditWindow = $derived(windowManager.getWindow('gedit'));
 
 	$effect(() => {
 		windowManager.setTitle('main', windowTitle, windowIcon);
 		showAboutComputer = windowManager.getWindow('about-computer')?.isOpen ?? false;
+
+		if (repoBrowser.selectedRecord) {
+			windowManager.setTitle(
+				'gedit',
+				`${repoBrowser.selectedRecord.rkey}.json - gedit`,
+				'/icons/humanity/apps/accessories-text-editor.svg'
+			);
+		}
 	});
 
 	onMount(() => {
@@ -114,6 +125,23 @@
 			</div>
 		{/if}
 
+		{#if repoBrowser.selectedRecord && geditWindow?.isOpen && !geditWindow.isMinimized}
+			<div class="gedit-window" class:maximized={geditWindow.isMaximized} style:z-index={geditWindow.zIndex}>
+				<AppWindow
+					windowId="gedit"
+					title={`${repoBrowser.selectedRecord.rkey}.json - gedit`}
+					icon="/icons/humanity/apps/accessories-text-editor.svg"
+					address={repoBrowser.selectedRecord.uri}
+					maximized={geditWindow.isMaximized}
+					onfocus={() => windowManager.focus('gedit')}
+					onminimize={() => windowManager.minimize('gedit')}
+					onmaximize={() => windowManager.toggleMaximize('gedit')}
+					onclose={() => windowManager.close('gedit')}>
+					<Gedit record={repoBrowser.selectedRecord} />
+				</AppWindow>
+			</div>
+		{/if}
+
 		{#if showStickyNote}
 			<aside class="sticky-note" aria-label="Design note">
 				<button type="button" aria-label="Close note" onclick={() => (showStickyNote = false)}>×</button>
@@ -165,7 +193,8 @@
 	}
 
 	.primary-window.maximized,
-	.about-window.maximized {
+	.about-window.maximized,
+	.gedit-window.maximized {
 		position: fixed;
 		top: 1.75rem;
 		right: 0;
@@ -176,16 +205,28 @@
 		min-height: 0;
 	}
 
-	.about-window {
+	.about-window,
+	.gedit-window {
 		position: absolute;
+		z-index: 3;
+	}
+
+	.about-window {
 		top: min(8rem, 16vh);
 		left: min(46rem, 52vw);
-		z-index: 3;
 		width: min(34rem, calc(100vw - 2rem));
 		height: min(28rem, calc(100vh - 5rem));
 	}
 
-	.about-window :global(.app-window) {
+	.gedit-window {
+		top: min(6rem, 12vh);
+		left: min(20rem, 24vw);
+		width: min(44rem, calc(100vw - 2rem));
+		height: min(34rem, calc(100vh - 5rem));
+	}
+
+	.about-window :global(.app-window),
+	.gedit-window :global(.app-window) {
 		height: 100%;
 	}
 
@@ -232,7 +273,8 @@
 			padding: var(--space-3);
 		}
 
-		.about-window {
+		.about-window,
+		.gedit-window {
 			left: auto;
 			right: var(--space-3);
 		}
@@ -256,7 +298,8 @@
 			min-height: 0;
 		}
 
-		.about-window {
+		.about-window,
+		.gedit-window {
 			top: var(--space-3);
 			right: var(--space-3);
 			left: var(--space-3);

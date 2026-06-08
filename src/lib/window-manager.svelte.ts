@@ -1,4 +1,4 @@
-export type WindowId = 'main' | 'about-computer';
+export type WindowId = 'main' | 'about-computer' | 'gedit';
 
 export type ManagedWindow = {
 	id: WindowId;
@@ -29,6 +29,15 @@ class WindowManager {
 			isMinimized: false,
 			isMaximized: false,
 			zIndex: 2
+		},
+		{
+			id: 'gedit',
+			title: 'gedit',
+			icon: '/icons/humanity/apps/accessories-text-editor.svg',
+			isOpen: false,
+			isMinimized: false,
+			isMaximized: false,
+			zIndex: 3
 		}
 	]);
 
