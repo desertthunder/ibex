@@ -9,6 +9,7 @@
 	import DesktopIcon from '$lib/components/DesktopIcon.svelte';
 	import Gedit from '$lib/components/Gedit.svelte';
 	import GnomePanel from '$lib/components/GnomePanel.svelte';
+	import NativeWindow from '$lib/components/NativeWindow.svelte';
 	import SetupDialog from '$lib/components/SetupDialog.svelte';
 	import '$lib/styles/style.css';
 
@@ -127,7 +128,7 @@
 
 		{#if repoBrowser.selectedRecord && geditWindow?.isOpen && !geditWindow.isMinimized}
 			<div class="gedit-window" class:maximized={geditWindow.isMaximized} style:z-index={geditWindow.zIndex}>
-				<AppWindow
+				<NativeWindow
 					windowId="gedit"
 					title={`${repoBrowser.selectedRecord.rkey}.json - gedit`}
 					icon="/icons/humanity/apps/accessories-text-editor.svg"
@@ -138,7 +139,7 @@
 					onmaximize={() => windowManager.toggleMaximize('gedit')}
 					onclose={() => windowManager.close('gedit')}>
 					<Gedit record={repoBrowser.selectedRecord} />
-				</AppWindow>
+				</NativeWindow>
 			</div>
 		{/if}
 

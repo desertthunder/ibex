@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { BundledLanguage, ThemeRegistration } from 'shiki';
+	import type { ThemeRegistration } from 'shiki';
 	import type { RepoRecordSummary } from '$lib/atproto/repo.svelte';
 
 	type Props = { record: RepoRecordSummary };
@@ -8,9 +8,13 @@
 
 	let { record }: Props = $props();
 	let tokenLines = $state<TokenLine[]>([]);
+	let wordWrap = $state(false);
+	let copied = $state(false);
+	let copyTimeout: ReturnType<typeof setTimeout> | null = null;
 
+	const themeName = 'ubuntu-iterm2b24';
 	const ubuntuTheme: ThemeRegistration = {
-		name: 'ubuntu-iterm2b24',
+		name: themeName,
 		type: 'dark',
 		colors: {
 			'editor.background': '#300a24',
@@ -18,22 +22,59 @@
 			'editorLineNumber.foreground': '#747772',
 			'editor.selectionBackground': '#555753'
 		},
-		tokenColors: [
+		settings: [
+			{ settings: { foreground: '#eeeeec', background: '#300a24' } },
 			{ scope: ['comment'], settings: { foreground: '#747772', fontStyle: 'italic' } },
-			{ scope: ['string'], settings: { foreground: '#4e9a06' } },
+			{ scope: ['string', 'string.quoted'], settings: { foreground: '#4e9a06' } },
 			{ scope: ['constant.numeric', 'constant.language'], settings: { foreground: '#c4a000' } },
-			{ scope: ['keyword', 'storage'], settings: { foreground: '#729fcf' } },
-			{ scope: ['entity.name', 'support.type'], settings: { foreground: '#34e2e2' } },
-			{ scope: ['variable', 'support.variable'], settings: { foreground: '#ad7fa8' } },
+			{
+				scope: ['support.type.property-name', 'meta.structure.dictionary.key.json string'],
+				settings: { foreground: '#729fcf' }
+			},
 			{ scope: ['punctuation'], settings: { foreground: '#b3b7b0' } },
 			{ scope: ['invalid'], settings: { foreground: '#ef2929' } }
 		]
 	};
 
-	async function highlight() {
-		const { codeToTokensBase } = await import('shiki');
+	let highlighterPromise: Promise<{
+		codeToTokensBase: (code: string, options: { lang: 'json'; theme: string }) => TokenLine[];
+	}> | null = null;
 
-		tokenLines = await codeToTokensBase(record.json, { lang: 'json' satisfies BundledLanguage, theme: ubuntuTheme });
+	async function getJsonHighlighter() {
+		highlighterPromise ??= Promise.all([
+			import('@shikijs/core'),
+			import('@shikijs/engine-javascript'),
+			import('@shikijs/langs/json')
+		]).then(async ([core, engine, json]) => {
+			const highlighter = await core.createHighlighterCore({
+				themes: [ubuntuTheme],
+				langs: [json.default],
+				engine: engine.createJavaScriptRegexEngine()
+			});
+
+			return {
+				codeToTokensBase: (code: string, options: { lang: 'json'; theme: string }) =>
+					highlighter.codeToTokensBase(code, options) as TokenLine[]
+			};
+		});
+
+		return highlighterPromise;
+	}
+
+	async function highlight() {
+		const highlighter = await getJsonHighlighter();
+		tokenLines = highlighter.codeToTokensBase(record.json, { lang: 'json', theme: themeName });
+	}
+
+	async function copyRecord() {
+		await navigator.clipboard.writeText(record.json);
+		copied = true;
+
+		if (copyTimeout) clearTimeout(copyTimeout);
+		copyTimeout = setTimeout(() => {
+			copied = false;
+			copyTimeout = null;
+		}, 1400);
 	}
 
 	onMount(() => {
@@ -48,9 +89,10 @@
 <section class="gedit" aria-label={`${record.title} JSON record`}>
 	<header class="gedit-toolbar">
 		<div class="tool-group" aria-label="Document actions">
-			<button type="button">Open</button>
-			<button type="button">Save</button>
-			<button type="button">Print</button>
+			<button type="button" class:copied aria-live="polite" onclick={copyRecord}>{copied ? 'Copied!' : 'Copy'}</button>
+			<button type="button" class:active={wordWrap} aria-pressed={wordWrap} onclick={() => (wordWrap = !wordWrap)}>
+				Word Wrap
+			</button>
 		</div>
 		<div class="document-path">
 			<img src="/icons/humanity/mimes/text-x-generic.svg" alt="" width="18" height="18" />
@@ -58,25 +100,30 @@
 		</div>
 	</header>
 
-	<div class="editor-shell">
+	<div class="editor-shell" class:word-wrap={wordWrap}>
 		<aside class="line-gutter" aria-hidden="true">
 			{#each record.json.split('\n') as line, index (`line-${record.uri}-${index}`)}
-				<span>{line ? index + 1 : index + 1}</span>
+				<span aria-label={line}>{index + 1}</span>
 			{/each}
 		</aside>
 
 		<div class="code-pane">
 			<pre class="gedit-code"><code
-					>{#if tokenLines.length > 0}{#each tokenLines as line, lineIndex (`${record.uri}-${lineIndex}`)}{#each line as token, tokenIndex (`${record.uri}-${lineIndex}-${tokenIndex}`)}<span
-									style:color={token.color}>{token.content}</span
-								>{/each}{#if lineIndex < tokenLines.length - 1}{/if}{/each}{:else}{record.json}{/if}</code></pre>
+					>{#if tokenLines.length > 0}{#each tokenLines as line, lineIndex (`${record.uri}-${lineIndex}`)}<span
+								class="code-line"
+								>{#each line as token, tokenIndex (`${record.uri}-${lineIndex}-${tokenIndex}`)}<span
+										style:color={token.color}>{token.content}</span
+									>{/each}</span
+							>{/each}{:else}{#each record.json.split('\n') as line, index (`fallback-${record.uri}-${index}`)}<span
+								class="code-line">{line}</span
+							>{/each}{/if}</code></pre>
 		</div>
 	</div>
 
 	<footer class="statusbar">
 		<span>{record.uri}</span>
 		<span>JSON</span>
-		<span>Ln 1, Col 1</span>
+		<span>{wordWrap ? 'Wrap on' : 'Wrap off'}</span>
 	</footer>
 </section>
 
@@ -140,6 +187,21 @@
 		cursor: default;
 	}
 
+	button.active,
+	button.copied {
+		color: white;
+		background: linear-gradient(#729fcf, #3465a4);
+		text-shadow: 0 1px 0 rgb(0 0 0 / 0.5);
+	}
+
+	button.copied {
+		background: linear-gradient(#8ae234, #4e9a06);
+		border-color: #3b7c09;
+		box-shadow:
+			0 1px 0 rgb(255 255 255 / 0.5) inset,
+			0 0 0 1px rgb(138 226 52 / 0.35);
+	}
+
 	.document-path {
 		display: flex;
 		align-items: center;
@@ -196,6 +258,17 @@
 		font-family: var(--font-mono);
 		font-size: var(--text-1);
 		line-height: 1.45;
+	}
+
+	.code-line {
+		display: block;
+		min-height: 1.45em;
+		white-space: pre;
+	}
+
+	.word-wrap .code-line {
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
 	}
 
 	.statusbar {

@@ -16,6 +16,7 @@
 		onminimize?: () => void;
 		onmaximize?: () => void;
 		resizable?: boolean;
+		variant?: 'default' | 'native';
 		onclose?: () => void;
 	};
 
@@ -32,6 +33,7 @@
 		onminimize,
 		onmaximize,
 		resizable = true,
+		variant = 'default',
 		onclose,
 		children
 	}: Props & { children: Snippet } = $props();
@@ -155,6 +157,9 @@
 	class:dragging={drag}
 	class:resizing={resize}
 	class:maximized
+	class:no-menubar={!showMenubar}
+	class:no-toolbar={!showToolbar}
+	class:native-window={variant === 'native'}
 	aria-label={title}
 	role="group"
 	style:transform={maximized ? undefined : `translate(${x}px, ${y}px)`}
@@ -251,11 +256,27 @@
 		user-select: none;
 	}
 
+	.app-window.no-menubar.no-toolbar {
+		grid-template-rows: auto minmax(0, 1fr);
+	}
+
+	.app-window.no-menubar:not(.no-toolbar),
+	.app-window.no-toolbar:not(.no-menubar) {
+		grid-template-rows: auto auto minmax(0, 1fr);
+	}
+
 	.app-window.maximized {
 		width: 100%;
 		height: 100%;
 		border-radius: 0;
 		transform: none;
+	}
+
+	.native-window .titlebar {
+		color: #2e3436;
+		background: linear-gradient(#eeeeec, #b3b7b0);
+		border-bottom-color: #747772;
+		text-shadow: 0 1px 0 rgb(255 255 255 / 0.75);
 	}
 
 	.titlebar {
@@ -398,8 +419,14 @@
 
 	.content {
 		overflow: hidden;
+		min-height: 0;
 		padding: var(--space-3);
 		background: var(--window-surface);
+	}
+
+	.native-window .content {
+		height: 100%;
+		padding: 0;
 	}
 
 	.resize-handle {
