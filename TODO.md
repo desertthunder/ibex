@@ -6,15 +6,13 @@ no authentication or server.
 
 ## Routing
 
-- Add shareable record routes:
-  - `/records/:did/:collection/:rkey`
-- Use DIDs, not handles, as canonical URL identity because DIDs are stable.
-- When opening a record route directly, boot the full desktop shell, select the
-  repo/collection in Nautilus, and open the record in gedit.
-- Fetch direct record links client-side with public ATProto, likely
-  `com.atproto.repo.getRecord`.
-- Opportunistically hydrate public identity metadata for nicer labels: handle,
-  display name, avatar, DID, and PDS.
+- Done: shareable record routes at `/records/:did/:collection/:rkey`.
+- Done: direct record routes boot the desktop shell, select the repo/collection in
+  Nautilus, and open the record in gedit.
+- Done: record routes fetch client-side with public ATProto and use DIDs as the
+  canonical identity.
+- Done: record routes opportunistically hydrate public identity metadata for nicer
+  labels: handle, display name, avatar, DID, and PDS.
 
 ## Browser
 

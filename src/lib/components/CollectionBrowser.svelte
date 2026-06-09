@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
+	import { recordPath } from '$lib/atproto/routes';
 	import type { CollectionSummary, RepoRecordSummary } from '$lib/atproto/types';
 	import { windowManager } from '$lib/window-manager.svelte';
 	import { SvelteMap } from 'svelte/reactivity';
@@ -44,6 +46,15 @@
 		repoBrowser.selectedRecord = record;
 		windowManager.setTitle('gedit', `${record.rkey}.json - gedit`, record.icon);
 		windowManager.open('gedit');
+
+		const identity = accountSetup.identity;
+		if (identity) {
+			// eslint-disable-next-line svelte/no-navigation-without-resolve
+			void goto(recordPath({ did: identity.did, collection: record.collection, rkey: record.rkey }), {
+				keepFocus: true,
+				noScroll: true
+			});
+		}
 	}
 
 	function groupCollections(collections: CollectionSummary[]) {

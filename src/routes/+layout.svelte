@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { dev } from '$app/environment';
+	import { page } from '$app/state';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import favicon from '$lib/assets/favicon.svg';
@@ -26,6 +27,7 @@
 	let bootStep = $state('Loading database');
 	let bootError = $state<string | null>(null);
 	let cacheDisabled = $state(false);
+	let handledRecordRoute = $state<string | null>(null);
 
 	const windowTitle = $derived(
 		accountSetup.isConfigured ? 'AT Protocol Collections - Intrepid Ibex' : 'AT Protocol Account Setup'
@@ -85,6 +87,17 @@
 		}
 	});
 
+	$effect(() => {
+		const route = recordRouteFromParams();
+		if (bootStatus !== 'ready' || !route) return;
+
+		const routeKey = `${route.did}/${route.collection}/${route.rkey}`;
+		if (handledRecordRoute === routeKey) return;
+
+		handledRecordRoute = routeKey;
+		void openRecordRoute(route);
+	});
+
 	onMount(() => {
 		void bootDesktop();
 	});
@@ -138,6 +151,32 @@
 		cacheDisabled = true;
 		bootStatus = 'ready';
 		accountSetup.load();
+	}
+
+	async function openRecordRoute(route: { did: string; collection: string; rkey: string }) {
+		try {
+			const { hydratePublicIdentity } = await import('$lib/atproto/identity');
+			const identity = await hydratePublicIdentity(route.did);
+
+			await repoBrowser.openRecordRoute(identity, route.collection, route.rkey);
+			accountSetup.save(identity);
+
+			windowManager.restore('main');
+			if (repoBrowser.selectedRecord) {
+				windowManager.open('gedit');
+			}
+		} catch (unknownError) {
+			repoBrowser.error = errorMessage(unknownError, 'Could not open that record route.');
+		}
+	}
+
+	function recordRouteFromParams() {
+		if (page.route.id !== '/records/[did]/[collection]/[rkey]') return null;
+
+		const { did, collection, rkey } = page.params;
+		if (!did || !collection || !rkey) return null;
+
+		return { did, collection, rkey };
 	}
 
 	async function waitForMinimumBootTime(startedAt: number) {

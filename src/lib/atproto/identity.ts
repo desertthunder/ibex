@@ -26,11 +26,20 @@ export async function resolveAccount(handle: string): Promise<AccountIdentity> {
 		publicApi.get('com.atproto.identity.resolveHandle', { params: { handle: normalizedHandle as Handle } })
 	);
 
-	const [profile, pds] = await Promise.all([getPublicProfile(identity.did), resolvePds(identity.did)]);
+	return hydratePublicIdentity(identity.did, normalizedHandle);
+}
+
+export async function hydratePublicIdentity(did: string, fallbackHandle = did): Promise<AccountIdentity> {
+	if (!did.startsWith('did:')) {
+		throw new Error('Record routes must include a DID.');
+	}
+
+	const [profile, pds] = await Promise.all([getPublicProfile(did).catch(() => null), resolvePds(did).catch(() => null)]);
+	const handle = profile?.handle ?? fallbackHandle;
 
 	return {
-		handle: normalizedHandle,
-		did: identity.did,
+		handle,
+		did,
 		pds,
 		displayName: profile?.displayName ?? null,
 		avatar: profile?.avatar ?? null,

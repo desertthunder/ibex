@@ -18,7 +18,7 @@ export async function* listRecordPages({
 	do {
 		const response = await ok(
 			rpc.get('com.atproto.repo.listRecords', {
-				params: { repo: identity.did as ActorIdentifier, collection: collection as Nsid, limit, reverse: true, cursor }
+				params: { repo: identity.did as ActorIdentifier, collection: collection as Nsid, limit, reverse: false, cursor }
 			})
 		);
 

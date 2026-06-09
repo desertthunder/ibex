@@ -1,5 +1,5 @@
 import { Client, ok, simpleFetchHandler } from '@atcute/client';
-import type { ActorIdentifier } from '@atcute/lexicons/syntax';
+import type { ActorIdentifier, Nsid } from '@atcute/lexicons/syntax';
 import type {} from '@atcute/atproto';
 import type { CachedRecord, CachedRecordInput } from '$lib/db';
 import { errorMessage } from '$lib/utils/errors';
@@ -164,6 +164,47 @@ class RepoBrowserState {
 		}
 	}
 
+	async openRecordRoute(identity: AccountIdentity, collectionName: string, rkey: string) {
+		this.reset();
+		this.loadedDid = identity.did;
+		this.selectedCollection = collectionName;
+		this.isLoadingCollections = true;
+		this.isLoadingRecords = true;
+		this.error = null;
+
+		try {
+			const rpc = createRepoClient(identity);
+			const [repo, record] = await Promise.all([
+				ok(rpc.get('com.atproto.repo.describeRepo', { params: { repo: identity.did as ActorIdentifier } })),
+				getRepoRecord(identity, collectionName, rkey)
+			]);
+			const collectionNames = repo.collections.some((name) => name === collectionName)
+				? repo.collections
+				: [collectionName, ...repo.collections];
+
+			this.collections = collectionNames.sort().map((name) => collectionSummaryForName(name, null));
+			this.selectedCollection = collectionName;
+			this.recordPages = listRecordPages({ identity, collection: collectionName, limit: 25 });
+			await this.loadNextRecordPage(identity, { throwOnError: false });
+
+			const summary = summarizeRecord(record, identity.handle);
+			this.selectedRecord = summary;
+
+			if (!this.records.some((existingRecord) => existingRecord.uri === summary.uri)) {
+				this.records = [summary, ...this.records];
+			}
+
+			this.collections = this.collections.map((collection) =>
+				collection.name === collectionName ? { ...collection, loadedCount: this.records.length } : collection
+			);
+		} catch (unknownError) {
+			this.error = errorMessage(unknownError, `Could not open ${collectionName}/${rkey}.`);
+		} finally {
+			this.isLoadingCollections = false;
+			this.isLoadingRecords = false;
+		}
+	}
+
 	async loadRecordsFromCache(identity: AccountIdentity, collectionName: string) {
 		try {
 			const { getDatabase, listCachedRecords } = await import('$lib/db');
@@ -206,6 +247,17 @@ export const repoBrowser = new RepoBrowserState();
 
 function createRepoClient(identity: AccountIdentity) {
 	return new Client({ handler: simpleFetchHandler({ service: identity.pds ?? 'https://public.api.bsky.app' }) });
+}
+
+async function getRepoRecord(identity: AccountIdentity, collectionName: string, rkey: string): Promise<UnknownRecord> {
+	const rpc = createRepoClient(identity);
+	const record = await ok(
+		rpc.get('com.atproto.repo.getRecord', {
+			params: { repo: identity.did as ActorIdentifier, collection: collectionName as Nsid, rkey }
+		})
+	);
+
+	return { uri: record.uri, cid: record.cid ?? '', value: record.value };
 }
 
 function preferredCollection(collections: string[]) {
