@@ -129,6 +129,22 @@
 		list-style: decimal;
 	}
 
+	.document-page :global(a) {
+		color: #164a8b;
+		font-weight: 700;
+		text-decoration-line: underline;
+		text-decoration-thickness: 2px;
+		text-underline-offset: 0.18em;
+		background: linear-gradient(transparent 58%, rgb(114 159 207 / 0.28) 58%);
+		border-radius: var(--radius-1);
+	}
+
+	.document-page :global(a:hover) {
+		color: white;
+		background: var(--selection);
+		text-decoration-color: rgb(255 255 255 / 0.8);
+	}
+
 	.document-page :global(code) {
 		padding: 0.08rem 0.3rem;
 		font-family: var(--font-mono);

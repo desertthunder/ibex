@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
+	import { notImplemented } from '$lib/not-implemented.svelte';
 	import type { Snippet } from 'svelte';
 
 	type Props = {
@@ -191,26 +192,30 @@
 				aria-label={maximized ? 'Restore' : 'Maximize'}
 				tabindex={onmaximize ? 0 : -1}
 				onclick={onmaximize}></button>
-			<button class="close-control" type="button" aria-label="Close" tabindex={onclose ? 0 : -1} onclick={onclose}
-			></button>
+			<button
+				class="close-control"
+				type="button"
+				aria-label="Close"
+				tabindex={onclose ? 0 : -1}
+				onclick={onclose ?? (() => notImplemented.show())}></button>
 		</div>
 	</header>
 
 	{#if showMenubar}
 		<nav class="menubar" aria-label="Application menu">
-			<button type="button">Collection</button>
-			<button type="button">Navigate</button>
-			<button type="button">View</button>
-			<button type="button">Bookmarks</button>
-			<button type="button">Help</button>
+			<button type="button" onclick={() => notImplemented.show()}>Collection</button>
+			<button type="button" onclick={() => notImplemented.show()}>Navigate</button>
+			<button type="button" onclick={() => notImplemented.show()}>View</button>
+			<button type="button" onclick={() => notImplemented.show()}>Bookmarks</button>
+			<button type="button" onclick={() => notImplemented.show()}>Help</button>
 		</nav>
 	{/if}
 
 	{#if showToolbar}
 		<div class="toolbar" aria-label="Application toolbar">
-			<button type="button"><span aria-hidden="true">◀</span> Back</button>
-			<button type="button"><span aria-hidden="true">▶</span> Forward</button>
-			<button type="button"
+			<button type="button" onclick={() => notImplemented.show()}><span aria-hidden="true">◀</span> Back</button>
+			<button type="button" onclick={() => notImplemented.show()}><span aria-hidden="true">▶</span> Forward</button>
+			<button type="button" onclick={() => notImplemented.show()}
 				><img src="/icons/humanity/actions/mail-send-receive.svg" alt="" width="18" height="18" /> Sync</button>
 			<label>
 				<span class="sr-only">Address</span>

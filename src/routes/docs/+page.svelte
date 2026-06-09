@@ -9,6 +9,12 @@
 			icon: '/icons/humanity/mimes/gnome-mime-application-pdf.svg'
 		},
 		{
+			title: 'Atmosphere',
+			slug: 'atmosphere',
+			description: 'A short note about portable accounts and the open social web.',
+			icon: '/icons/humanity/apps/web-browser.svg'
+		},
+		{
 			title: 'Changelog',
 			slug: 'changelog',
 			description: 'Release notes and recent project changes.',

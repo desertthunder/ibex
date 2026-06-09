@@ -22,7 +22,7 @@
 </script>
 
 <nav class="panel-menus" aria-label="System menus">
-	<button class="applications-menu" type="button" onclick={() => goto('/')}>
+	<button class="applications-menu" type="button" onclick={() => goto('/docs/atmosphere')}>
 		<img src="/icons/humanity/apps/system-file-manager.svg" alt="" width="20" height="20" />
 		<span>Applications</span>
 	</button>

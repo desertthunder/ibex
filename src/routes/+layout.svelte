@@ -18,6 +18,7 @@
 	import GnomePanel from '$lib/components/GnomePanel.svelte';
 	import LockScreen from '$lib/components/LockScreen.svelte';
 	import NativeWindow from '$lib/components/NativeWindow.svelte';
+	import NotImplementedDialog from '$lib/components/NotImplementedDialog.svelte';
 	import SetupDialog from '$lib/components/SetupDialog.svelte';
 	import '$lib/styles/style.css';
 
@@ -35,7 +36,8 @@
 	const windowTitle = $derived.by(() => {
 		if (routeRequiresSetup) return 'AT Protocol Account Setup';
 		if (page.route.id === '/') return 'Welcome to Intrepid Ibex';
-		if (page.route.id?.startsWith('/docs')) return 'Getting Started - Document Viewer';
+		// TODO: this should be slug aware
+		if (page.route.id?.startsWith('/docs')) return 'Document Viewer';
 		return 'AT Protocol Collections - Intrepid Ibex';
 	});
 	const windowIcon = $derived.by(() => {
@@ -80,7 +82,8 @@
 		{
 			label: 'Document Viewer',
 			icon: '/icons/humanity/mimes/gnome-mime-application-pdf.svg',
-			selected: page.route.id?.startsWith('/docs') || (documentViewerWindow?.isOpen && !documentViewerWindow.isMinimized),
+			selected:
+				page.route.id?.startsWith('/docs') || (documentViewerWindow?.isOpen && !documentViewerWindow.isMinimized),
 			onactivate: () => {
 				windowManager.restore('main');
 				void goto('/docs');
@@ -328,6 +331,8 @@
 				</aside>
 			{/if}
 		</main>
+
+		<NotImplementedDialog />
 
 		{#if desktopSession.isLocked}
 			<LockScreen identity={accountSetup.identity} onunlock={() => desktopSession.unlock()} />

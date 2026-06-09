@@ -34,3 +34,5 @@ based on the Base 16 spec.
 - Ubuntu 11 ([duh](https://archive.org/details/ubuntu-11.10-desktop-i386-20110812))
 - Atmosphere app logos are adapted from
   [atmologos](https://tangled.org/cozylittle.house/atmologos).
+- Atmosphere [info](/src/routes/docs/atmosphere.md) adapted from
+  [Atmosphere Account](https://atmosphereaccount.com/).

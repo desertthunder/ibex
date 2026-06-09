@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notImplemented } from '$lib/not-implemented.svelte';
 	import { windowManager } from '$lib/window-manager.svelte';
 	import GnomeMenuBar from '$lib/components/GnomeMenuBar.svelte';
 
@@ -14,7 +15,7 @@
 
 	<div class="panel-launchers" aria-label="Launchers">
 		{#each launchers as launcher (launcher.label)}
-			<button type="button" title={launcher.label}>
+			<button type="button" title={launcher.label} onclick={() => notImplemented.show()}>
 				<img src={launcher.icon} alt="" width="22" height="22" />
 			</button>
 		{/each}
