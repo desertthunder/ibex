@@ -12,6 +12,7 @@ import {
 	type CachedRecordInput
 } from '$lib/db';
 import { errorMessage } from '$lib/utils/errors';
+import { appLabelForCollection, collectionIconMatch } from './collection-icons';
 import {
 	isRecordValue,
 	type AccountIdentity,
@@ -54,9 +55,7 @@ class RepoBrowserState {
 				rpc.get('com.atproto.repo.describeRepo', { params: { repo: identity.did as ActorIdentifier } })
 			);
 
-			this.collections = repo.collections
-				.sort()
-				.map((name) => ({ name, icon: iconForCollection(name), loadedCount: null }));
+			this.collections = repo.collections.sort().map((name) => collectionSummaryForName(name, null));
 			this.selectedCollection = preferredCollection(this.collections.map((collection) => collection.name));
 
 			if (this.selectedCollection) {
@@ -113,11 +112,7 @@ class RepoBrowserState {
 
 			if (collections.length === 0) return false;
 
-			this.collections = collections.map((collection) => ({
-				name: collection.name,
-				icon: iconForCollection(collection.name),
-				loadedCount: collection.loadedCount
-			}));
+			this.collections = collections.map((collection) => collectionSummaryForName(collection.name, collection.loadedCount));
 			this.selectedCollection = preferredCollection(this.collections.map((collection) => collection.name));
 
 			if (this.selectedCollection) {
@@ -203,11 +198,17 @@ function preferredCollection(collections: string[]) {
 }
 
 export function iconForCollection(name: string) {
+	const appIcon = collectionIconMatch(name)?.icon;
+	if (appIcon) return appIcon;
 	if (name.includes('profile') || name.includes('actor')) return '/icons/humanity/places/user-home.svg';
 	if (name.includes('chat') || name.includes('convo')) return '/icons/humanity/apps/evolution-mail.svg';
 	if (name.includes('feed') || name.includes('post')) return '/icons/humanity/apps/internet-feed-reader.svg';
 	if (name.includes('graph') || name.includes('follow')) return '/icons/humanity/places/folder.svg';
 	return '/icons/humanity/mimes/text-x-generic.svg';
+}
+
+function collectionSummaryForName(name: string, loadedCount: number | null): CollectionSummary {
+	return { name, icon: iconForCollection(name), appLabel: appLabelForCollection(name), loadedCount };
 }
 
 function summarizeRecord(record: UnknownRecord, handle: string): RepoRecordSummary {
@@ -227,7 +228,9 @@ function summarizeRecord(record: UnknownRecord, handle: string): RepoRecordSumma
 		modified: formatRecordTime(createdAt),
 		collection: collectionFromUri(record.uri),
 		rkey: recordKeyFromUri(record.uri),
-		json: JSON.stringify(record.value, null, 2)
+		json: JSON.stringify(record.value, null, 2),
+		icon: iconForCollection(collectionFromUri(record.uri)),
+		appLabel: appLabelForCollection(collectionFromUri(record.uri))
 	};
 }
 

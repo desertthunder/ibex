@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { ThemeRegistration } from 'shiki';
-	import type { RepoRecordSummary } from '$lib/atproto/repo.svelte';
+	import type { RepoRecordSummary } from '$lib/atproto/types';
 
 	type Props = { record: RepoRecordSummary };
 	type TokenLine = Array<{ content: string; color?: string; fontStyle?: number }>;
@@ -95,8 +95,11 @@
 			</button>
 		</div>
 		<div class="document-path">
-			<img src="/icons/humanity/mimes/text-x-generic.svg" alt="" width="18" height="18" />
+			<img src={record.icon} alt="" width="18" height="18" />
 			<span>{record.collection}/{record.rkey}.json</span>
+			{#if record.appLabel}
+				<strong>{record.appLabel}</strong>
+			{/if}
 		</div>
 	</header>
 

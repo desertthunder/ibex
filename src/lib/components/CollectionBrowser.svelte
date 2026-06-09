@@ -39,7 +39,7 @@
 
 	function openRecord(record: RepoRecordSummary) {
 		repoBrowser.selectedRecord = record;
-		windowManager.setTitle('gedit', `${record.rkey}.json - gedit`, '/icons/humanity/apps/accessories-text-editor.svg');
+		windowManager.setTitle('gedit', `${record.rkey}.json - gedit`, record.icon);
 		windowManager.open('gedit');
 	}
 </script>
@@ -81,6 +81,9 @@
 			<div>
 				<p class="eyebrow">Selected collection</p>
 				<h2>{repoBrowser.selectedCollection ?? 'No collection selected'}</h2>
+				{#if repoBrowser.selectedSummary?.appLabel}
+					<p class="app-label">{repoBrowser.selectedSummary.appLabel}</p>
+				{/if}
 				<p>
 					{#if repoBrowser.isLoadingRecords}
 						Fetching public records from {accountSetup.identity?.pds ?? 'the public API'}…
@@ -125,7 +128,7 @@
 			{:else}
 				{#each repoBrowser.records as record (record.uri)}
 					<button class="record-row" type="button" onclick={() => openRecord(record)}>
-						<img src="/icons/humanity/mimes/text-x-generic.svg" alt="" width="32" height="32" />
+						<img src={record.icon} alt="" width="32" height="32" />
 						<div>
 							<h3>{record.title}</h3>
 							<p>{record.body}</p>
@@ -306,6 +309,10 @@
 		text-transform: uppercase;
 	}
 
+	.app-label {
+		font-weight: 700;
+	}
+
 	.record-list {
 		overflow: auto;
 		padding: var(--space-3);
@@ -345,6 +352,12 @@
 
 	.record-row:hover {
 		background: #f1d09d;
+	}
+
+	.record-row img,
+	.sidebar img,
+	.summary-card > img {
+		object-fit: contain;
 	}
 
 	.record-list h3 {

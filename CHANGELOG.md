@@ -16,6 +16,7 @@ Target release: `v1.0.0`.
 - Cache-aware AT Protocol browsing: live record fetches populate PGlite and offline
   failures can fall back to cached collections/records.
 - Full-text cache search in the Nautilus-style collection browser.
+- Atmosphere app logo mapping for known AT Protocol collection namespaces.
 
 ### 2026-06-08
 

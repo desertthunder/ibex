@@ -68,11 +68,7 @@
 		showAboutComputer = windowManager.getWindow('about-computer')?.isOpen ?? false;
 
 		if (repoBrowser.selectedRecord) {
-			windowManager.setTitle(
-				'gedit',
-				`${repoBrowser.selectedRecord.rkey}.json - gedit`,
-				'/icons/humanity/apps/accessories-text-editor.svg'
-			);
+			windowManager.setTitle('gedit', `${repoBrowser.selectedRecord.rkey}.json - gedit`, repoBrowser.selectedRecord.icon);
 		}
 	});
 
@@ -196,7 +192,7 @@
 					<NativeWindow
 						windowId="gedit"
 						title={`${repoBrowser.selectedRecord.rkey}.json - gedit`}
-						icon="/icons/humanity/apps/accessories-text-editor.svg"
+						icon={repoBrowser.selectedRecord.icon}
 						address={repoBrowser.selectedRecord.uri}
 						maximized={geditWindow.isMaximized}
 						onfocus={() => windowManager.focus('gedit')}

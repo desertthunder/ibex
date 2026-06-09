@@ -44,6 +44,8 @@
 	<p class="note">
 		View the project on
 		<a href="https://tangled.org/desertthunder.dev/ibex" target="_blank" rel="noreferrer">Tangled</a>.
+		Atmosphere logos courtesy of
+		<a href="https://tangled.org/cozylittle.house/atmologos" target="_blank" rel="noreferrer">atmologos</a>.
 	</p>
 </section>
 

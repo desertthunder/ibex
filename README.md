@@ -28,3 +28,9 @@ brown panels, tan window chrome, desktop shortcuts, and draggable/resizable wind
 
 Syntax highlighting uses a JSON-only Shiki bundle with an Ubuntu terminal palette
 based on the Base 16 spec.
+
+## Credits
+
+- Ubuntu 11 ([duh](https://archive.org/details/ubuntu-11.10-desktop-i386-20110812))
+- Atmosphere app logos are adapted from
+  [atmologos](https://tangled.org/cozylittle.house/atmologos).

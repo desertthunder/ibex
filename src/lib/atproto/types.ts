@@ -11,7 +11,7 @@ export type DidDocument = {
 	service?: Array<{ id?: string; type?: string; serviceEndpoint?: string | string[] | Record<string, unknown> }>;
 };
 
-export type CollectionSummary = { name: string; icon: string; loadedCount: number | null };
+export type CollectionSummary = { name: string; icon: string; appLabel: string | null; loadedCount: number | null };
 
 export type RepoRecordSummary = {
 	uri: string;
@@ -23,6 +23,8 @@ export type RepoRecordSummary = {
 	collection: string;
 	rkey: string;
 	json: string;
+	icon: string;
+	appLabel: string | null;
 };
 
 export type UnknownRecord = { uri: string; cid: string; value: unknown };
