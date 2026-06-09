@@ -1,11 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { dev } from '$app/environment';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import favicon from '$lib/assets/favicon.svg';
+	import { getDatabase, resetLocalDatabase, runMigrations } from '$lib/db';
 	import { windowManager } from '$lib/window-manager.svelte';
 	import AboutComputer from '$lib/components/AboutComputer.svelte';
 	import AppWindow from '$lib/components/AppWindow.svelte';
+	import BootSplash from '$lib/components/BootSplash.svelte';
 	import DesktopIcon from '$lib/components/DesktopIcon.svelte';
 	import Gedit from '$lib/components/Gedit.svelte';
 	import GnomePanel from '$lib/components/GnomePanel.svelte';
@@ -16,6 +19,10 @@
 	let { children } = $props();
 	let showAboutComputer = $state(false);
 	let showStickyNote = $state(true);
+	let bootStatus = $state<'booting' | 'ready' | 'error'>('booting');
+	let bootStep = $state('Loading database');
+	let bootError = $state<string | null>(null);
+	let cacheDisabled = $state(false);
 
 	const shortcuts = $derived([
 		{
@@ -69,8 +76,46 @@
 	});
 
 	onMount(() => {
-		accountSetup.load();
+		void bootDesktop();
 	});
+
+	async function bootDesktop() {
+		bootStatus = 'booting';
+		bootError = null;
+
+		try {
+			bootStep = 'Loading database';
+			const db = await getDatabase();
+			bootStep = 'Applying migrations';
+			await runMigrations(db);
+			bootStep = 'Starting desktop';
+			accountSetup.load();
+			bootStatus = 'ready';
+		} catch (error) {
+			bootError = error instanceof Error ? error.message : 'Could not start the local cache.';
+			bootStatus = 'error';
+		}
+	}
+
+	async function resetCacheAndRetry() {
+		bootStatus = 'booting';
+		bootStep = 'Resetting local cache';
+		bootError = null;
+
+		try {
+			await resetLocalDatabase();
+			await bootDesktop();
+		} catch (error) {
+			bootError = error instanceof Error ? error.message : 'Could not reset the local cache.';
+			bootStatus = 'error';
+		}
+	}
+
+	function continueWithoutCache() {
+		cacheDisabled = true;
+		bootStatus = 'ready';
+		accountSetup.load();
+	}
 </script>
 
 <svelte:head>
@@ -79,79 +124,89 @@
 	<meta name="description" content="An AT Protocol browser styled after Ubuntu 8.10 and classic GNOME." />
 </svelte:head>
 
-<div class="gnome-desktop">
-	<GnomePanel />
+{#if bootStatus !== 'ready'}
+	<BootSplash
+		step={bootStep}
+		error={bootError}
+		canReset={dev}
+		onretry={bootDesktop}
+		onreset={resetCacheAndRetry}
+		oncontinue={continueWithoutCache} />
+{:else}
+	<div class="gnome-desktop" data-cache-disabled={cacheDisabled}>
+		<GnomePanel />
 
-	<main class="desktop-stage" aria-label="Ubuntu 8.10 inspired AT Protocol browser desktop">
-		<section class="desktop-icons" aria-label="Desktop shortcuts">
-			{#each shortcuts as shortcut (shortcut.label)}
-				<DesktopIcon {...shortcut} />
-			{/each}
-		</section>
+		<main class="desktop-stage" aria-label="Ubuntu 8.10 inspired AT Protocol browser desktop">
+			<section class="desktop-icons" aria-label="Desktop shortcuts">
+				{#each shortcuts as shortcut (shortcut.label)}
+					<DesktopIcon {...shortcut} />
+				{/each}
+			</section>
 
-		{#if mainWindow?.isOpen && !mainWindow.isMinimized}
-			<div class="primary-window" class:maximized={mainWindow.isMaximized} style:z-index={mainWindow.zIndex}>
-				<AppWindow
-					windowId="main"
-					title={windowTitle}
-					icon={windowIcon}
-					maximized={mainWindow.isMaximized}
-					onfocus={() => windowManager.focus('main')}
-					onminimize={() => windowManager.minimize('main')}
-					onmaximize={() => windowManager.toggleMaximize('main')}>
-					{#if accountSetup.isConfigured}
-						{@render children()}
-					{:else}
-						<SetupDialog />
-					{/if}
-				</AppWindow>
-			</div>
-		{/if}
+			{#if mainWindow?.isOpen && !mainWindow.isMinimized}
+				<div class="primary-window" class:maximized={mainWindow.isMaximized} style:z-index={mainWindow.zIndex}>
+					<AppWindow
+						windowId="main"
+						title={windowTitle}
+						icon={windowIcon}
+						maximized={mainWindow.isMaximized}
+						onfocus={() => windowManager.focus('main')}
+						onminimize={() => windowManager.minimize('main')}
+						onmaximize={() => windowManager.toggleMaximize('main')}>
+						{#if accountSetup.isConfigured}
+							{@render children()}
+						{:else}
+							<SetupDialog />
+						{/if}
+					</AppWindow>
+				</div>
+			{/if}
 
-		{#if showAboutComputer && aboutWindow?.isOpen && !aboutWindow.isMinimized}
-			<div class="about-window" class:maximized={aboutWindow.isMaximized} style:z-index={aboutWindow.zIndex}>
-				<AppWindow
-					windowId="about-computer"
-					title="About This Computer"
-					icon="/icons/humanity/devices/computer.svg"
-					showMenubar={false}
-					showToolbar={false}
-					maximized={aboutWindow.isMaximized}
-					onfocus={() => windowManager.focus('about-computer')}
-					onminimize={() => windowManager.minimize('about-computer')}
-					onmaximize={() => windowManager.toggleMaximize('about-computer')}
-					onclose={() => windowManager.close('about-computer')}>
-					<AboutComputer />
-				</AppWindow>
-			</div>
-		{/if}
+			{#if showAboutComputer && aboutWindow?.isOpen && !aboutWindow.isMinimized}
+				<div class="about-window" class:maximized={aboutWindow.isMaximized} style:z-index={aboutWindow.zIndex}>
+					<AppWindow
+						windowId="about-computer"
+						title="About This Computer"
+						icon="/icons/humanity/devices/computer.svg"
+						showMenubar={false}
+						showToolbar={false}
+						maximized={aboutWindow.isMaximized}
+						onfocus={() => windowManager.focus('about-computer')}
+						onminimize={() => windowManager.minimize('about-computer')}
+						onmaximize={() => windowManager.toggleMaximize('about-computer')}
+						onclose={() => windowManager.close('about-computer')}>
+						<AboutComputer />
+					</AppWindow>
+				</div>
+			{/if}
 
-		{#if repoBrowser.selectedRecord && geditWindow?.isOpen && !geditWindow.isMinimized}
-			<div class="gedit-window" class:maximized={geditWindow.isMaximized} style:z-index={geditWindow.zIndex}>
-				<NativeWindow
-					windowId="gedit"
-					title={`${repoBrowser.selectedRecord.rkey}.json - gedit`}
-					icon="/icons/humanity/apps/accessories-text-editor.svg"
-					address={repoBrowser.selectedRecord.uri}
-					maximized={geditWindow.isMaximized}
-					onfocus={() => windowManager.focus('gedit')}
-					onminimize={() => windowManager.minimize('gedit')}
-					onmaximize={() => windowManager.toggleMaximize('gedit')}
-					onclose={() => windowManager.close('gedit')}>
-					<Gedit record={repoBrowser.selectedRecord} />
-				</NativeWindow>
-			</div>
-		{/if}
+			{#if repoBrowser.selectedRecord && geditWindow?.isOpen && !geditWindow.isMinimized}
+				<div class="gedit-window" class:maximized={geditWindow.isMaximized} style:z-index={geditWindow.zIndex}>
+					<NativeWindow
+						windowId="gedit"
+						title={`${repoBrowser.selectedRecord.rkey}.json - gedit`}
+						icon="/icons/humanity/apps/accessories-text-editor.svg"
+						address={repoBrowser.selectedRecord.uri}
+						maximized={geditWindow.isMaximized}
+						onfocus={() => windowManager.focus('gedit')}
+						onminimize={() => windowManager.minimize('gedit')}
+						onmaximize={() => windowManager.toggleMaximize('gedit')}
+						onclose={() => windowManager.close('gedit')}>
+						<Gedit record={repoBrowser.selectedRecord} />
+					</NativeWindow>
+				</div>
+			{/if}
 
-		{#if showStickyNote}
-			<aside class="sticky-note" aria-label="Design note">
-				<button type="button" aria-label="Close note" onclick={() => (showStickyNote = false)}>×</button>
-				<h2>Intrepid Ibex</h2>
-				<p>This app is a recreation of the spirit of Ubuntu 8.10</p>
-			</aside>
-		{/if}
-	</main>
-</div>
+			{#if showStickyNote}
+				<aside class="sticky-note" aria-label="Design note">
+					<button type="button" aria-label="Close note" onclick={() => (showStickyNote = false)}>×</button>
+					<h2>Intrepid Ibex</h2>
+					<p>This app is a recreation of the spirit of Ubuntu 8.10</p>
+				</aside>
+			{/if}
+		</main>
+	</div>
+{/if}
 
 <style>
 	.gnome-desktop {

@@ -1,4 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
+import { resetLocalCacheDatabase } from './migrations';
 import { DB_DATA_DIR, SQL } from './schema';
 
 export type DbClient = PGlite;
@@ -42,6 +43,11 @@ export async function closeDatabase(): Promise<void> {
 
 export async function resetDatabaseForTests(): Promise<void> {
 	await closeDatabase();
+}
+
+export async function resetLocalDatabase(): Promise<void> {
+	await closeDatabase();
+	await resetLocalCacheDatabase();
 }
 
 async function initializeDatabase(): Promise<DbClient> {
