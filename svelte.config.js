@@ -6,7 +6,7 @@ const config = {
 	extensions: ['.svelte', '.svx', '.md'],
 	preprocess: [mdsvex({ extensions: ['.svx', '.md'] })],
 	compilerOptions: { runes: ({ filename }) => (filename.split(/[/\\]/).includes('node_modules') ? undefined : true) },
-	kit: { adapter: adapter({ fallback: 'index.html' }) }
+	kit: { adapter: adapter({ fallback: '200.html' }) }
 };
 
 export default config;
