@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { resolveAccount } from '$lib/atproto/identity';
-	import type { AccountIdentity } from '$lib/atproto/types';
+	import { hydratePublicIdentity, resolveAccount, searchActorsTypeahead } from '$lib/atproto/identity';
+	import type { AccountIdentity, ActorTypeaheadResult } from '$lib/atproto/types';
 	import { accountSetup, setupDefaults } from '$lib/atproto/setup.svelte';
 	import { errorMessage } from '$lib/utils/errors';
 
@@ -9,16 +9,105 @@
 	let resolvedIdentity = $state<AccountIdentity | null>(null);
 	let error = $state<string | null>(null);
 	let isResolving = $state(false);
+	let suggestions = $state<ActorTypeaheadResult[]>([]);
+	let activeSuggestionIndex = $state(-1);
+	let typeaheadError = $state<string | null>(null);
+	let isSearching = $state(false);
+	let hasInputFocus = $state(false);
+	let typeaheadRequestId = 0;
 
 	const didMatchesKnownAccount = $derived(resolvedIdentity?.did === setupDefaults.did);
+	const showTypeahead = $derived(hasInputFocus && (suggestions.length > 0 || isSearching || typeaheadError !== null));
+
+	$effect(() => {
+		const query = handle.trim().replace(/^@/, '');
+
+		if (!hasInputFocus || query.length < 2 || resolvedIdentity?.handle === query) {
+			suggestions = [];
+			activeSuggestionIndex = -1;
+			typeaheadError = null;
+			isSearching = false;
+			return;
+		}
+
+		const requestId = ++typeaheadRequestId;
+		isSearching = true;
+		typeaheadError = null;
+
+		const timeout = window.setTimeout(async () => {
+			try {
+				const results = await searchActorsTypeahead(query);
+
+				if (requestId === typeaheadRequestId) {
+					suggestions = results;
+					activeSuggestionIndex = results.length > 0 ? 0 : -1;
+				}
+			} catch (unknownError) {
+				if (requestId === typeaheadRequestId) {
+					suggestions = [];
+					activeSuggestionIndex = -1;
+					typeaheadError = errorMessage(unknownError, 'Could not search handles.');
+				}
+			} finally {
+				if (requestId === typeaheadRequestId) {
+					isSearching = false;
+				}
+			}
+		}, 220);
+
+		return () => window.clearTimeout(timeout);
+	});
 
 	async function resolveHandle() {
 		isResolving = true;
 		error = null;
 		resolvedIdentity = null;
+		hasInputFocus = false;
 
 		try {
 			resolvedIdentity = await resolveAccount(handle);
+		} catch (unknownError) {
+			error = errorMessage(unknownError, 'Could not resolve that handle.');
+		} finally {
+			isResolving = false;
+		}
+	}
+
+	function handleInput() {
+		resolvedIdentity = null;
+		error = null;
+		hasInputFocus = true;
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (!showTypeahead || suggestions.length === 0) {
+			return;
+		}
+
+		if (event.key === 'ArrowDown') {
+			event.preventDefault();
+			activeSuggestionIndex = (activeSuggestionIndex + 1) % suggestions.length;
+		} else if (event.key === 'ArrowUp') {
+			event.preventDefault();
+			activeSuggestionIndex = (activeSuggestionIndex - 1 + suggestions.length) % suggestions.length;
+		} else if (event.key === 'Enter' && activeSuggestionIndex >= 0) {
+			event.preventDefault();
+			void selectSuggestion(suggestions[activeSuggestionIndex]);
+		} else if (event.key === 'Escape') {
+			hasInputFocus = false;
+		}
+	}
+
+	async function selectSuggestion(suggestion: ActorTypeaheadResult) {
+		handle = suggestion.handle;
+		hasInputFocus = false;
+		suggestions = [];
+		activeSuggestionIndex = -1;
+		isResolving = true;
+		error = null;
+
+		try {
+			resolvedIdentity = await hydratePublicIdentity(suggestion.did, suggestion.handle);
 		} catch (unknownError) {
 			error = errorMessage(unknownError, 'Could not resolve that handle.');
 		} finally {
@@ -54,10 +143,50 @@
 	<form class="handle-form" onsubmit={(event) => event.preventDefault()}>
 		<label for="handle">Handle</label>
 		<div class="handle-row">
-			<!-- TODO: setup typeahead
-			     https://docs.bsky.app/docs/api/app-bsky-actor-search-actors-typeahead
-			-->
-			<input id="handle" bind:value={handle} placeholder="desertthunder.dev" autocomplete="username" />
+			<div class="typeahead-field">
+				<input
+					id="handle"
+					bind:value={handle}
+					placeholder="desertthunder.dev"
+					autocomplete="off"
+					aria-autocomplete="list"
+					aria-controls="handle-suggestions"
+					aria-expanded={showTypeahead}
+					onfocus={() => (hasInputFocus = true)}
+					onblur={() => (hasInputFocus = false)}
+					oninput={handleInput}
+					onkeydown={handleKeydown} />
+
+				{#if showTypeahead}
+					<div id="handle-suggestions" class="typeahead-menu" role="listbox" aria-label="Suggested handles">
+						{#if isSearching}
+							<p class="typeahead-status">Searching public profiles…</p>
+						{:else if typeaheadError}
+							<p class="typeahead-status error-text">{typeaheadError}</p>
+						{:else}
+							{#each suggestions as suggestion, index (suggestion.did)}
+								<button
+									type="button"
+									class:active={index === activeSuggestionIndex}
+									role="option"
+									aria-selected={index === activeSuggestionIndex}
+									onmousedown={(event) => event.preventDefault()}
+									onclick={() => selectSuggestion(suggestion)}>
+									{#if suggestion.avatar}
+										<img src={suggestion.avatar} alt="" />
+									{:else}
+										<img src="/icons/humanity/places/user-home.svg" alt="" />
+									{/if}
+									<span>
+										<strong>{suggestion.displayName ?? suggestion.handle}</strong>
+										<small>@{suggestion.handle}</small>
+									</span>
+								</button>
+							{/each}
+						{/if}
+					</div>
+				{/if}
+			</div>
 			<button type="button" onclick={resolveHandle} disabled={isResolving}>
 				{isResolving ? 'Resolving…' : 'Resolve'}
 			</button>
@@ -188,7 +317,13 @@
 		gap: var(--space-2);
 	}
 
+	.typeahead-field {
+		position: relative;
+		min-width: 0;
+	}
+
 	input {
+		width: 100%;
 		height: 2rem;
 		padding: 0 var(--space-3);
 		color: var(--text);
@@ -196,6 +331,85 @@
 		border: 1px solid #8e7654;
 		border-radius: var(--radius-2);
 		box-shadow: var(--shadow-sunken);
+	}
+
+	.typeahead-menu {
+		position: absolute;
+		z-index: 20;
+		top: calc(100% + 2px);
+		left: 0;
+		right: 0;
+		max-height: 15rem;
+		overflow-y: auto;
+		padding: 2px;
+		background: #fffdf7;
+		border: 1px solid #8e7654;
+		border-radius: var(--radius-2);
+		box-shadow: 0 4px 10px rgb(62 42 20 / 0.28);
+	}
+
+	.typeahead-menu button {
+		display: grid;
+		grid-template-columns: 2rem minmax(0, 1fr);
+		align-items: center;
+		width: 100%;
+		height: auto;
+		min-height: 2.5rem;
+		padding: var(--space-1) var(--space-2);
+		gap: var(--space-2);
+		text-align: left;
+		background: transparent;
+		border: 0;
+		border-radius: 0;
+		box-shadow: none;
+		font-weight: 400;
+	}
+
+	.typeahead-menu button.active,
+	.typeahead-menu button:hover {
+		color: white;
+		background: #c66b1f;
+		text-shadow: 0 1px 0 rgb(0 0 0 / 0.35);
+	}
+
+	.typeahead-menu img {
+		width: 2rem;
+		height: 2rem;
+		object-fit: cover;
+		background: #ead8ba;
+		border: 1px solid #b29165;
+		border-radius: var(--radius-2);
+	}
+
+	.typeahead-menu span {
+		display: grid;
+		min-width: 0;
+	}
+
+	.typeahead-menu strong,
+	.typeahead-menu small {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.typeahead-menu small {
+		color: var(--text-muted);
+		font-size: var(--text-0);
+	}
+
+	.typeahead-menu button.active small,
+	.typeahead-menu button:hover small {
+		color: #fff0d8;
+	}
+
+	.typeahead-status {
+		padding: var(--space-2) var(--space-3);
+		font-size: var(--text-1);
+	}
+
+	.error-text {
+		color: #721c0d;
 	}
 
 	button {

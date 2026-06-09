@@ -3,9 +3,9 @@ import type { ActorIdentifier } from '@atcute/lexicons/syntax';
 import type { Handle } from '@atcute/lexicons/syntax';
 import type {} from '@atcute/atproto';
 import type {} from '@atcute/bluesky';
-import type { AccountIdentity, DidDocument } from './types';
+import type { AccountIdentity, ActorTypeaheadResult, DidDocument } from './types';
 
-export type { AccountIdentity } from './types';
+export type { AccountIdentity, ActorTypeaheadResult } from './types';
 
 export const defaultIdentity = { handle: 'desertthunder.dev', did: 'did:plc:xg2vq45muivyy3xwatcehspu' };
 
@@ -27,6 +27,27 @@ export async function resolveAccount(handle: string): Promise<AccountIdentity> {
 	);
 
 	return hydratePublicIdentity(identity.did, normalizedHandle);
+}
+
+export async function searchActorsTypeahead(query: string, limit = 6): Promise<ActorTypeaheadResult[]> {
+	const normalizedQuery = query.trim().replace(/^@/, '');
+
+	if (!normalizedQuery) {
+		return [];
+	}
+
+	const result = await ok(
+		publicApi.get('app.bsky.actor.searchActorsTypeahead', {
+			params: { q: normalizedQuery, limit }
+		})
+	);
+
+	return result.actors.map((actor) => ({
+		handle: actor.handle,
+		did: actor.did,
+		displayName: actor.displayName ?? null,
+		avatar: actor.avatar ?? null
+	}));
 }
 
 export async function hydratePublicIdentity(did: string, fallbackHandle = did): Promise<AccountIdentity> {

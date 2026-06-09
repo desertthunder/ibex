@@ -7,6 +7,8 @@ export type AccountIdentity = {
 	description: string | null;
 };
 
+export type ActorTypeaheadResult = Pick<AccountIdentity, 'handle' | 'did' | 'displayName' | 'avatar'>;
+
 export type DidDocument = {
 	service?: Array<{ id?: string; type?: string; serviceEndpoint?: string | string[] | Record<string, unknown> }>;
 };
