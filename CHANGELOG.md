@@ -1,10 +1,5 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project targets [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## [Unreleased]
 
 Target release: `v1.0.0`.
@@ -20,7 +15,7 @@ Target release: `v1.0.0`.
   recovery actions.
 - Cache-aware AT Protocol browsing: live record fetches populate PGlite and offline
   failures can fall back to cached collections/records.
-- Shared `errorMessage()` utility for consistent unknown-error messages.
+- Full-text cache search in the Nautilus-style collection browser.
 
 ### 2026-06-08
 

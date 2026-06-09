@@ -6,6 +6,7 @@ import {
 	getDatabase,
 	listCachedCollections,
 	listCachedRecords,
+	searchCachedRecords,
 	updateCollectionSyncState,
 	type CachedRecord,
 	type CachedRecordInput
@@ -27,6 +28,8 @@ class RepoBrowserState {
 	records = $state<RepoRecordSummary[]>([]);
 	isLoadingCollections = $state(false);
 	isLoadingRecords = $state(false);
+	isSearching = $state(false);
+	searchQuery = $state('');
 	error = $state<string | null>(null);
 	loadedDid = $state<string | null>(null);
 	selectedRecord = $state<RepoRecordSummary | null>(null);
@@ -71,6 +74,7 @@ class RepoBrowserState {
 
 	async selectCollection(identity: AccountIdentity, collectionName: string) {
 		this.selectedCollection = collectionName;
+		this.searchQuery = '';
 		this.isLoadingRecords = true;
 		this.error = null;
 
@@ -127,6 +131,35 @@ class RepoBrowserState {
 		}
 	}
 
+	async searchRecords(identity: AccountIdentity, query: string) {
+		const normalizedQuery = query.trim();
+		this.searchQuery = normalizedQuery;
+
+		if (!normalizedQuery) {
+			if (this.selectedCollection) {
+				await this.selectCollection(identity, this.selectedCollection);
+			}
+			return;
+		}
+
+		this.isSearching = true;
+		this.error = null;
+
+		try {
+			const db = await getDatabase();
+			const results = await searchCachedRecords(db, normalizedQuery, {
+				repoDid: identity.did,
+				collection: this.selectedCollection ?? undefined
+			});
+			this.records = results.map((record) => summarizeCachedRecord(record, identity.handle));
+		} catch (searchError) {
+			this.records = [];
+			this.error = errorMessage(searchError, 'Could not search cached records.');
+		} finally {
+			this.isSearching = false;
+		}
+	}
+
 	async loadRecordsFromCache(identity: AccountIdentity, collectionName: string) {
 		try {
 			const db = await getDatabase();
@@ -152,6 +185,8 @@ class RepoBrowserState {
 		this.selectedRecord = null;
 		this.isLoadingCollections = false;
 		this.isLoadingRecords = false;
+		this.isSearching = false;
+		this.searchQuery = '';
 		this.error = null;
 		this.loadedDid = null;
 	}

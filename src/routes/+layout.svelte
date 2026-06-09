@@ -81,6 +81,7 @@
 	});
 
 	async function bootDesktop() {
+		const bootStartedAt = performance.now();
 		bootStatus = 'booting';
 		bootError = null;
 
@@ -90,6 +91,7 @@
 			bootStep = 'Applying migrations';
 			await runMigrations(db);
 			bootStep = 'Starting desktop';
+			await waitForMinimumBootTime(bootStartedAt);
 			accountSetup.load();
 			bootStatus = 'ready';
 		} catch (error) {
@@ -116,6 +118,14 @@
 		cacheDisabled = true;
 		bootStatus = 'ready';
 		accountSetup.load();
+	}
+
+	async function waitForMinimumBootTime(startedAt: number) {
+		const remaining = 2500 - (performance.now() - startedAt);
+
+		if (remaining > 0) {
+			await new Promise((resolve) => setTimeout(resolve, remaining));
+		}
 	}
 </script>
 

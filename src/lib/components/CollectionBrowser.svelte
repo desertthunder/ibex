@@ -5,6 +5,8 @@
 	import type { RepoRecordSummary } from '$lib/atproto/types';
 	import { windowManager } from '$lib/window-manager.svelte';
 
+	let searchQuery = $state('');
+
 	onMount(() => {
 		const identity = accountSetup.identity;
 
@@ -17,8 +19,22 @@
 		const identity = accountSetup.identity;
 
 		if (identity) {
+			searchQuery = '';
 			repoBrowser.selectCollection(identity, collectionName);
 		}
+	}
+
+	function searchRecords() {
+		const identity = accountSetup.identity;
+
+		if (identity) {
+			repoBrowser.searchRecords(identity, searchQuery);
+		}
+	}
+
+	function clearSearch() {
+		searchQuery = '';
+		searchRecords();
 	}
 
 	function openRecord(record: RepoRecordSummary) {
@@ -68,11 +84,27 @@
 				<p>
 					{#if repoBrowser.isLoadingRecords}
 						Fetching public records from {accountSetup.identity?.pds ?? 'the public API'}…
+					{:else if repoBrowser.searchQuery}
+						Searching cached records for “{repoBrowser.searchQuery}”.
 					{:else}
 						Browse records as if they were tidy Nautilus files.
 					{/if}
 				</p>
 			</div>
+			<form class="search-box" role="search" onsubmit={(event) => { event.preventDefault(); searchRecords(); }}>
+				<label for="record-search">Search cache</label>
+				<div>
+					<input
+						id="record-search"
+						bind:value={searchQuery}
+						placeholder="Search cached records"
+						disabled={!repoBrowser.selectedCollection || repoBrowser.isLoadingRecords || repoBrowser.isSearching} />
+					<button type="submit" disabled={!searchQuery.trim() || repoBrowser.isSearching}>Search</button>
+					{#if repoBrowser.searchQuery}
+						<button type="button" class="clear-search" onclick={clearSearch}>Clear</button>
+					{/if}
+				</div>
+			</form>
 		</div>
 
 		<div class="record-list">
@@ -84,10 +116,12 @@
 
 			{#if repoBrowser.error}
 				<p class="message error">{repoBrowser.error}</p>
-			{:else if repoBrowser.isLoadingRecords}
-				<p class="message">Loading records…</p>
+			{:else if repoBrowser.isLoadingRecords || repoBrowser.isSearching}
+				<p class="message">{repoBrowser.isSearching ? 'Searching cached records…' : 'Loading records…'}</p>
 			{:else if repoBrowser.records.length === 0}
-				<p class="message">No public records found for this collection.</p>
+				<p class="message">
+					{repoBrowser.searchQuery ? 'No cached records matched that search.' : 'No public records found for this collection.'}
+				</p>
 			{:else}
 				{#each repoBrowser.records as record (record.uri)}
 					<button class="record-row" type="button" onclick={() => openRecord(record)}>
@@ -204,12 +238,66 @@
 	}
 
 	.summary-card {
-		display: flex;
+		display: grid;
+		grid-template-columns: 48px minmax(0, 1fr) minmax(16rem, 22rem);
 		gap: var(--space-3);
 		align-items: center;
 		padding: var(--space-4);
 		background: linear-gradient(#fffaf1, #ead8b8);
 		border-bottom: 1px solid #b29366;
+	}
+
+	.search-box {
+		display: grid;
+		gap: var(--space-1);
+		justify-self: end;
+		width: 100%;
+	}
+
+	.search-box label {
+		color: var(--text-muted);
+		font-size: var(--text-0);
+		font-weight: 700;
+		text-transform: uppercase;
+	}
+
+	.search-box div {
+		display: flex;
+		gap: var(--space-1);
+	}
+
+	.search-box input {
+		min-width: 0;
+		flex: 1;
+		padding: 0.35rem 0.45rem;
+		color: var(--text);
+		background: #fffdf8;
+		border: 1px solid #a88b63;
+		border-radius: var(--radius-2);
+		box-shadow: var(--shadow-sunken);
+		font: inherit;
+		font-size: var(--text-1);
+	}
+
+	.search-box button {
+		padding: 0.35rem 0.55rem;
+		color: #2c180d;
+		background: linear-gradient(#fff8e8, #d3b17d);
+		border: 1px solid #9d7a4b;
+		border-radius: var(--radius-2);
+		box-shadow: var(--shadow-raised);
+		font: inherit;
+		font-size: var(--text-1);
+		font-weight: 700;
+	}
+
+	.search-box button:disabled,
+	.search-box input:disabled {
+		opacity: 0.62;
+	}
+
+	.search-box .clear-search {
+		font-weight: 500;
 	}
 
 	.eyebrow {
@@ -288,6 +376,15 @@
 
 		.sidebar {
 			display: none;
+		}
+
+		.summary-card {
+			grid-template-columns: 48px minmax(0, 1fr);
+		}
+
+		.search-box {
+			grid-column: 1 / -1;
+			justify-self: stretch;
 		}
 
 		.record-list > header,
