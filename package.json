@@ -49,11 +49,15 @@
 		"@atcute/bluesky": "^4.0.7",
 		"@atcute/client": "^5.0.0",
 		"@atcute/lexicons": "^2.0.0",
+		"@fontsource/ubuntu": "^5.2.8",
+		"@resvg/resvg-js": "^2.6.2",
 		"@shikijs/core": "^4.2.0",
 		"@shikijs/engine-javascript": "^4.2.0",
 		"@shikijs/langs": "^4.2.0",
 		"dexie": "^4.4.3",
 		"flexsearch": "^0.8.212",
+		"satori": "^0.26.0",
+		"satori-html": "^0.3.2",
 		"shiki": "^4.2.0"
 	}
 }
