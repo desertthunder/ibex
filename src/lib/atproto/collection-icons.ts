@@ -11,6 +11,7 @@ export const collectionIconMatches: readonly CollectionIconMatch[] = [
 	{ prefix: 'fm.plyr.', label: 'plyr.fm', icon: `${atmologoBasePath}/plyr.fm.svg` },
 	{ prefix: 'id.sifa.', label: 'Sifa', icon: `${atmologoBasePath}/sifa%20id.svg` },
 	{ prefix: 'net.anisota.', label: 'Anisota', icon: `${atmologoBasePath}/anisota.svg` },
+	{ prefix: 'network.cosmik.', label: 'Cosmik', icon: `${atmologoBasePath}/semble.svg` },
 	{ prefix: 'pub.leaflet.', label: 'Leaflet', icon: `${atmologoBasePath}/leaflet.svg` },
 	{ prefix: 'sh.tangled.', label: 'Tangled', icon: `${atmologoBasePath}/tangled.svg` },
 	{ prefix: 'site.standard.', label: 'Standard Site', icon: `${atmologoBasePath}/standard%20site.svg` },
