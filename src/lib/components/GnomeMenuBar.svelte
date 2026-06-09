@@ -4,7 +4,7 @@
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
 	import { desktopSession } from '$lib/desktop-session.svelte';
 	import { windowManager } from '$lib/window-manager.svelte';
-	import GnomeTry from '$lib/components/GnomeTry.svelte';
+	import GnomeTray from '$lib/components/GnomeTray.svelte';
 
 	function changeAccount() {
 		windowManager.close('gedit');
@@ -64,7 +64,7 @@
 	</details>
 </nav>
 
-<GnomeTry />
+<GnomeTray />
 
 <style>
 	.panel-menus {

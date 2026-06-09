@@ -1,9 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
-	import { repoBrowser } from '$lib/atproto/repo.svelte';
 	import { desktopSession } from '$lib/desktop-session.svelte';
-	import { windowManager } from '$lib/window-manager.svelte';
 
 	let now = $state(new Date());
 
@@ -26,24 +24,23 @@
 
 		return () => window.clearInterval(interval);
 	});
-
-	function changeAccount() {
-		windowManager.close('gedit');
-		repoBrowser.reset();
-		accountSetup.reset();
-	}
 </script>
 
 <aside class="panel-tray" aria-label="Status tray">
 	{#if accountSetup.identity}
-		<button class="account-chip" type="button" onclick={changeAccount} title="Change account">
+		<a
+			class="account-chip"
+			href={`https://aturi.to/profile/${encodeURIComponent(accountSetup.identity.handle)}`}
+			target="_blank"
+			rel="noopener noreferrer"
+			title={`Open @${accountSetup.identity.handle} on aturi.to`}>
 			{#if accountSetup.identity.avatar}
 				<img src={accountSetup.identity.avatar} alt="" width="16" height="16" />
 			{:else}
 				<img src="/icons/humanity/places/user-home.svg" alt="" width="16" height="16" />
 			{/if}
 			<span>@{accountSetup.identity.handle}</span>
-		</button>
+		</a>
 	{/if}
 	<button class="tray-button" type="button" onclick={() => desktopSession.lock()} title="Lock screen">
 		<img src="/icons/humanity/status/network-wireless-encrypted.svg" alt="Lock screen" width="16" height="16" />
