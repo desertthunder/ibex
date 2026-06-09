@@ -44,6 +44,7 @@
 		"@atcute/bluesky": "^4.0.6",
 		"@atcute/client": "^5.0.0",
 		"@atcute/lexicons": "^2.0.0",
+		"@electric-sql/pglite": "^0.5.1",
 		"@shikijs/core": "^4.2.0",
 		"@shikijs/engine-javascript": "^4.2.0",
 		"@shikijs/langs": "^4.2.0",

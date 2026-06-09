@@ -4,14 +4,22 @@ import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
 	plugins: [sveltekit()],
+	assetsInclude: ['**/*.wasm'],
+	optimizeDeps: { exclude: ['@electric-sql/pglite'] },
 	test: {
 		expect: { requireAssertions: true },
+		ui: false,
 		projects: [
 			{
 				extends: './vite.config.ts',
 				test: {
 					name: 'client',
-					browser: { enabled: true, provider: playwright(), instances: [{ browser: 'chromium', headless: true }] },
+					browser: {
+						headless: true,
+						enabled: true,
+						provider: playwright(),
+						instances: [{ browser: 'chromium', headless: true }]
+					},
 					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
 					exclude: ['src/lib/server/**']
 				}
