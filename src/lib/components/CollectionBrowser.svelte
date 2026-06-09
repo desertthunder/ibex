@@ -2,10 +2,13 @@
 	import { onMount } from 'svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
-	import type { RepoRecordSummary } from '$lib/atproto/types';
+	import type { CollectionSummary, RepoRecordSummary } from '$lib/atproto/types';
 	import { windowManager } from '$lib/window-manager.svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	let searchQuery = $state('');
+
+	const collectionGroups = $derived.by(() => groupCollections(repoBrowser.collections));
 
 	onMount(() => {
 		const identity = accountSetup.identity;
@@ -42,6 +45,35 @@
 		windowManager.setTitle('gedit', `${record.rkey}.json - gedit`, record.icon);
 		windowManager.open('gedit');
 	}
+
+	function groupCollections(collections: CollectionSummary[]) {
+		const groups = new SvelteMap<
+			string,
+			{ namespace: string; label: string; icon: string; collections: CollectionSummary[] }
+		>();
+
+		for (const collection of collections) {
+			const namespace = namespaceForCollection(collection.name);
+			const group = groups.get(namespace) ?? {
+				namespace,
+				label: collection.appLabel ?? namespace,
+				icon: collection.icon,
+				collections: []
+			};
+
+			if (!group.label || group.label === namespace) group.label = collection.appLabel ?? namespace;
+			if (!group.icon) group.icon = collection.icon;
+			group.collections.push(collection);
+			groups.set(namespace, group);
+		}
+
+		return [...groups.values()].sort((a, b) => a.namespace.localeCompare(b.namespace));
+	}
+
+	function namespaceForCollection(collection: string) {
+		const parts = collection.split('.');
+		return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : collection;
+	}
 </script>
 
 <div class="collection-browser">
@@ -51,24 +83,40 @@
 			<p>{accountSetup.identity?.handle ?? 'at:// repo folders'}</p>
 		</header>
 
-		<ul>
+		<div class="collection-tree" role="tree" aria-label="Repository namespaces">
 			{#if repoBrowser.isLoadingCollections}
-				<li class="empty-row">Loading collections…</li>
+				<p class="empty-row">Loading collections…</p>
 			{:else}
-				{#each repoBrowser.collections as collection (collection.name)}
-					<li>
-						<button
-							class:active={collection.name === repoBrowser.selectedCollection}
-							type="button"
-							onclick={() => selectCollection(collection.name)}>
-							<img src={collection.icon} alt="" width="24" height="24" />
-							<span>{collection.name}</span>
-							<small>{collection.loadedCount ?? 'repo'}</small>
-						</button>
-					</li>
+				{#each collectionGroups as group (group.namespace)}
+					<details class="namespace-group" open>
+						<summary aria-label={`${group.namespace} namespace`}>
+							<span class="namespace-leading" aria-hidden="true">
+								<span class="namespace-caret">▸</span>
+								<img src={group.icon} alt="" width="22" height="22" />
+							</span>
+							<span class="namespace-name">{group.namespace}.* ({group.collections.length})</span>
+						</summary>
+
+						<ul role="group">
+							{#each group.collections as collection (collection.name)}
+								<li>
+									<button
+										role="treeitem"
+										aria-selected={collection.name === repoBrowser.selectedCollection}
+										class:active={collection.name === repoBrowser.selectedCollection}
+										type="button"
+										onclick={() => selectCollection(collection.name)}>
+										<img src={collection.icon} alt="" width="22" height="22" />
+										<span>{collection.name}</span>
+										<small>{collection.loadedCount ?? 'repo'}</small>
+									</button>
+								</li>
+							{/each}
+						</ul>
+					</details>
 				{/each}
 			{/if}
-		</ul>
+		</div>
 	</aside>
 
 	<section class="record-pane" aria-label="Collection records">
@@ -94,7 +142,13 @@
 					{/if}
 				</p>
 			</div>
-			<form class="search-box" role="search" onsubmit={(event) => { event.preventDefault(); searchRecords(); }}>
+			<form
+				class="search-box"
+				role="search"
+				onsubmit={(event) => {
+					event.preventDefault();
+					searchRecords();
+				}}>
 				<label for="record-search">Search cache</label>
 				<div>
 					<input
@@ -123,7 +177,9 @@
 				<p class="message">{repoBrowser.isSearching ? 'Searching cached records…' : 'Loading records…'}</p>
 			{:else if repoBrowser.records.length === 0}
 				<p class="message">
-					{repoBrowser.searchQuery ? 'No cached records matched that search.' : 'No public records found for this collection.'}
+					{repoBrowser.searchQuery
+						? 'No cached records matched that search.'
+						: 'No public records found for this collection.'}
 				</p>
 			{:else}
 				{#each repoBrowser.records as record (record.uri)}
@@ -137,6 +193,16 @@
 						<time>{record.modified}</time>
 					</button>
 				{/each}
+
+				{#if repoBrowser.canLoadMoreRecords && !repoBrowser.searchQuery}
+					<button
+						class="load-more-records"
+						type="button"
+						disabled={repoBrowser.isLoadingMoreRecords}
+						onclick={() => accountSetup.identity && repoBrowser.loadNextRecordPage(accountSetup.identity)}>
+						{repoBrowser.isLoadingMoreRecords ? 'Loading more records…' : 'Load more records'}
+					</button>
+				{/if}
 			{/if}
 		</div>
 	</section>
@@ -180,18 +246,22 @@
 		font-size: var(--text-1);
 	}
 
-	.sidebar ul {
+	.collection-tree {
 		overflow: auto;
 		padding: var(--space-2);
 	}
 
+	.namespace-group + .namespace-group {
+		margin-top: var(--space-1);
+	}
+
+	.namespace-group summary,
 	.sidebar button {
 		display: grid;
-		grid-template-columns: 24px minmax(0, 1fr) auto;
+		grid-template-columns: 22px minmax(0, 1fr) auto;
 		align-items: center;
 		gap: var(--space-2);
 		width: 100%;
-		padding: var(--space-2);
 		border: 1px solid transparent;
 		border-radius: var(--radius-2);
 		font-size: var(--text-1);
@@ -199,8 +269,55 @@
 		cursor: default;
 	}
 
+	.namespace-group summary {
+		grid-template-columns: 3.4rem minmax(0, 1fr);
+		padding: var(--space-2);
+		color: #49321f;
+		font-weight: 700;
+		list-style: none;
+		background: rgb(255 255 255 / 0.22);
+		border-color: rgb(145 111 71 / 0.35);
+	}
+
+	.namespace-group summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.namespace-leading {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+		min-width: 0;
+	}
+
+	.namespace-caret {
+		width: 0.75rem;
+		color: #6d4b2d;
+		font-size: var(--text-0);
+		line-height: 1;
+	}
+
+	.namespace-group[open] .namespace-caret {
+		transform: rotate(90deg);
+	}
+
+	.namespace-name {
+		justify-self: end;
+	}
+
+	.namespace-group ul {
+		display: grid;
+		gap: 1px;
+		padding: var(--space-1) 0 var(--space-1) var(--space-3);
+	}
+
+	.sidebar button {
+		padding: var(--space-1) var(--space-2);
+	}
+
 	.sidebar button.active,
-	.sidebar button:hover {
+	.sidebar button:hover,
+	.namespace-group summary:hover {
 		color: white;
 		background: linear-gradient(#e48631, #b65312);
 		border-color: #f4b46b #8d3c0b #713009 #f1a35e;
@@ -352,6 +469,25 @@
 
 	.record-row:hover {
 		background: #f1d09d;
+	}
+
+	.load-more-records {
+		display: block;
+		width: max-content;
+		margin: var(--space-3) auto 0;
+		padding: var(--space-2) var(--space-4);
+		color: #2c180d;
+		background: linear-gradient(#fff8e8, #d3b17d);
+		border: 1px solid #9d7a4b;
+		border-radius: var(--radius-2);
+		box-shadow: var(--shadow-raised);
+		font: inherit;
+		font-size: var(--text-1);
+		font-weight: 700;
+	}
+
+	.load-more-records:disabled {
+		opacity: 0.62;
 	}
 
 	.record-row img,

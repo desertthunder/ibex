@@ -17,6 +17,11 @@ Target release: `v1.0.0`.
   failures can fall back to cached collections/records.
 - Full-text cache search in the Nautilus-style collection browser.
 - Atmosphere app logo mapping for known AT Protocol collection namespaces.
+- Cursor-based record pagination with a generator-backed “Load more records” flow.
+
+#### Changed
+
+- Grouped Nautilus collections by top-level namespace folders.
 
 ### 2026-06-08
 

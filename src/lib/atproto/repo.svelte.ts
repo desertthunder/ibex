@@ -1,5 +1,5 @@
 import { Client, ok, simpleFetchHandler } from '@atcute/client';
-import type { ActorIdentifier, Nsid } from '@atcute/lexicons/syntax';
+import type { ActorIdentifier } from '@atcute/lexicons/syntax';
 import type {} from '@atcute/atproto';
 import {
 	cacheFetchedRecords,
@@ -13,6 +13,7 @@ import {
 } from '$lib/db';
 import { errorMessage } from '$lib/utils/errors';
 import { appLabelForCollection, collectionIconMatch } from './collection-icons';
+import { listRecordPages, type RecordPage } from './pagination';
 import {
 	isRecordValue,
 	type AccountIdentity,
@@ -29,11 +30,14 @@ class RepoBrowserState {
 	records = $state<RepoRecordSummary[]>([]);
 	isLoadingCollections = $state(false);
 	isLoadingRecords = $state(false);
+	isLoadingMoreRecords = $state(false);
+	canLoadMoreRecords = $state(false);
 	isSearching = $state(false);
 	searchQuery = $state('');
 	error = $state<string | null>(null);
 	loadedDid = $state<string | null>(null);
 	selectedRecord = $state<RepoRecordSummary | null>(null);
+	private recordPages: AsyncGenerator<RecordPage> | null = null;
 
 	get selectedSummary() {
 		return this.collections.find((collection) => collection.name === this.selectedCollection) ?? null;
@@ -75,26 +79,13 @@ class RepoBrowserState {
 		this.selectedCollection = collectionName;
 		this.searchQuery = '';
 		this.isLoadingRecords = true;
+		this.canLoadMoreRecords = false;
 		this.error = null;
 
 		try {
-			const rpc = createRepoClient(identity);
-			const response = await ok(
-				rpc.get('com.atproto.repo.listRecords', {
-					params: {
-						repo: identity.did as ActorIdentifier,
-						collection: collectionName as Nsid,
-						limit: 25,
-						reverse: true
-					}
-				})
-			);
-
-			this.records = response.records.map((record) => summarizeRecord(record, identity.handle));
-			this.collections = this.collections.map((collection) =>
-				collection.name === collectionName ? { ...collection, loadedCount: response.records.length } : collection
-			);
-			void cacheLiveRecords(identity, collectionName, response.records);
+			this.records = [];
+			this.recordPages = listRecordPages({ identity, collection: collectionName, limit: 25 });
+			await this.loadNextRecordPage(identity, { throwOnError: true });
 		} catch (unknownError) {
 			const loadedFromCache = await this.loadRecordsFromCache(identity, collectionName);
 			this.error = loadedFromCache
@@ -102,6 +93,33 @@ class RepoBrowserState {
 				: errorMessage(unknownError, `Could not load records for ${collectionName}.`);
 		} finally {
 			this.isLoadingRecords = false;
+		}
+	}
+
+	async loadNextRecordPage(identity: AccountIdentity, options: { throwOnError?: boolean } = {}) {
+		if (!this.recordPages || !this.selectedCollection || this.isLoadingMoreRecords) return;
+
+		this.isLoadingMoreRecords = true;
+		this.error = null;
+
+		try {
+			const page = await this.recordPages.next();
+			this.canLoadMoreRecords = !page.done && page.value.cursor !== null;
+
+			if (page.done) return;
+
+			const nextRecords = page.value.records.map((record) => summarizeRecord(record, identity.handle));
+			this.records = [...this.records, ...nextRecords];
+			this.collections = this.collections.map((collection) =>
+				collection.name === this.selectedCollection ? { ...collection, loadedCount: this.records.length } : collection
+			);
+			void cacheLiveRecords(identity, this.selectedCollection, page.value.records, page.value.cursor);
+		} catch (unknownError) {
+			this.canLoadMoreRecords = false;
+			this.error = errorMessage(unknownError, `Could not load more records for ${this.selectedCollection}.`);
+			if (options.throwOnError) throw unknownError;
+		} finally {
+			this.isLoadingMoreRecords = false;
 		}
 	}
 
@@ -138,6 +156,7 @@ class RepoBrowserState {
 		}
 
 		this.isSearching = true;
+		this.canLoadMoreRecords = false;
 		this.error = null;
 
 		try {
@@ -162,6 +181,8 @@ class RepoBrowserState {
 
 			if (records.length === 0) return false;
 
+			this.recordPages = null;
+			this.canLoadMoreRecords = false;
 			this.records = records.map((record) => summarizeCachedRecord(record, identity.handle));
 			this.collections = this.collections.map((collection) =>
 				collection.name === collectionName ? { ...collection, loadedCount: records.length } : collection
@@ -180,10 +201,13 @@ class RepoBrowserState {
 		this.selectedRecord = null;
 		this.isLoadingCollections = false;
 		this.isLoadingRecords = false;
+		this.isLoadingMoreRecords = false;
+		this.canLoadMoreRecords = false;
 		this.isSearching = false;
 		this.searchQuery = '';
 		this.error = null;
 		this.loadedDid = null;
+		this.recordPages = null;
 	}
 }
 
@@ -238,7 +262,12 @@ function summarizeCachedRecord(record: CachedRecord, handle: string): RepoRecord
 	return summarizeRecord({ uri: record.uri, cid: record.cid, value: record.value }, handle);
 }
 
-async function cacheLiveRecords(identity: AccountIdentity, collectionName: string, records: readonly UnknownRecord[]) {
+async function cacheLiveRecords(
+	identity: AccountIdentity,
+	collectionName: string,
+	records: readonly UnknownRecord[],
+	cursor: string | null
+) {
 	try {
 		const db = await getDatabase();
 		await cacheFetchedRecords(
@@ -249,6 +278,7 @@ async function cacheLiveRecords(identity: AccountIdentity, collectionName: strin
 			accountDid: identity.did,
 			repoDid: identity.did,
 			collection: collectionName,
+			cursor,
 			lastSyncedAt: new Date().toISOString(),
 			lastError: null
 		});
