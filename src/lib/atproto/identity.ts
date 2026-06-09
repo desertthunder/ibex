@@ -37,9 +37,7 @@ export async function searchActorsTypeahead(query: string, limit = 6): Promise<A
 	}
 
 	const result = await ok(
-		publicApi.get('app.bsky.actor.searchActorsTypeahead', {
-			params: { q: normalizedQuery, limit }
-		})
+		publicApi.get('app.bsky.actor.searchActorsTypeahead', { params: { q: normalizedQuery, limit } })
 	);
 
 	return result.actors.map((actor) => ({
@@ -55,7 +53,10 @@ export async function hydratePublicIdentity(did: string, fallbackHandle = did): 
 		throw new Error('Record routes must include a DID.');
 	}
 
-	const [profile, pds] = await Promise.all([getPublicProfile(did).catch(() => null), resolvePds(did).catch(() => null)]);
+	const [profile, pds] = await Promise.all([
+		getPublicProfile(did).catch(() => null),
+		resolvePds(did).catch(() => null)
+	]);
 	const handle = profile?.handle ?? fallbackHandle;
 
 	return {

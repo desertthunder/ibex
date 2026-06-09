@@ -13,7 +13,9 @@ function slugFromPath(path: string) {
 		.replace(/^-|-$/g, '');
 }
 
-const documentSlugs = Object.keys(documents).map((path) => slugFromPath(path)).filter(Boolean) as string[];
+const documentSlugs = Object.keys(documents)
+	.map((path) => slugFromPath(path))
+	.filter(Boolean) as string[];
 
 export const entries: EntryGenerator = () => {
 	return documentSlugs.map((slug) => ({ slug }));

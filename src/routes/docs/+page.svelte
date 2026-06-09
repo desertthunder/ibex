@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	const documents = [
 		{
@@ -39,7 +40,7 @@
 
 	<div class="document-list" aria-label="Available documents">
 		{#each documents as document (document.slug)}
-			<button type="button" class="document-row" onclick={() => goto(`/docs/${document.slug}`)}>
+			<button type="button" class="document-row" onclick={() => goto(resolve('/docs/[slug]', { slug: document.slug }))}>
 				<img src={document.icon} alt="" width="40" height="40" />
 				<span>
 					<strong>{document.title}</strong>

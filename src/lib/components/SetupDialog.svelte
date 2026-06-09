@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { hydratePublicIdentity, resolveAccount, searchActorsTypeahead } from '$lib/atproto/identity';
 	import type { AccountIdentity, ActorTypeaheadResult } from '$lib/atproto/types';
 	import { accountSetup, setupDefaults } from '$lib/atproto/setup.svelte';
@@ -118,7 +119,7 @@
 	function useAccount() {
 		if (resolvedIdentity) {
 			accountSetup.save(resolvedIdentity);
-			void goto('/browse');
+			void goto(resolve('/browse'));
 		}
 	}
 </script>

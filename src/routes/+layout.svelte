@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { dev } from '$app/environment';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
@@ -58,7 +59,7 @@
 			selected: page.route.id === '/',
 			onactivate: () => {
 				windowManager.restore('main');
-				void goto('/');
+				void goto(resolve('/'));
 			}
 		},
 		{
@@ -67,7 +68,7 @@
 			selected: page.route.id === '/browse' || page.route.id?.startsWith('/records'),
 			onactivate: () => {
 				windowManager.restore('main');
-				void goto('/browse');
+				void goto(resolve('/browse'));
 			}
 		},
 		{
@@ -86,7 +87,7 @@
 				page.route.id?.startsWith('/docs') || (documentViewerWindow?.isOpen && !documentViewerWindow.isMinimized),
 			onactivate: () => {
 				windowManager.restore('main');
-				void goto('/docs');
+				void goto(resolve('/docs'));
 			}
 		},
 		{

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
 	import { desktopSession } from '$lib/desktop-session.svelte';
@@ -10,19 +11,19 @@
 		windowManager.close('gedit');
 		repoBrowser.reset();
 		accountSetup.reset();
-		void goto('/browse');
+		void goto(resolve('/browse'));
 	}
 
 	function openCollection(collectionName: string) {
 		if (!accountSetup.identity) return;
 
-		void goto('/browse');
+		void goto(resolve('/browse'));
 		repoBrowser.selectCollection(accountSetup.identity, collectionName);
 	}
 </script>
 
 <nav class="panel-menus" aria-label="System menus">
-	<button class="applications-menu" type="button" onclick={() => goto('/docs/atmosphere')}>
+	<button class="applications-menu" type="button" onclick={() => goto(resolve('/docs/atmosphere'))}>
 		<img src="/icons/humanity/apps/system-file-manager.svg" alt="" width="20" height="20" />
 		<span>Applications</span>
 	</button>
@@ -33,9 +34,7 @@
 			<p class="menu-heading">Collections</p>
 			{#if repoBrowser.collections.length > 0}
 				{#each repoBrowser.collections.slice(0, 10) as collection (collection.name)}
-					<button
-						type="button"
-						onclick={() => openCollection(collection.name)}>
+					<button type="button" onclick={() => openCollection(collection.name)}>
 						<img src={collection.icon} alt="" width="16" height="16" />
 						<span>{collection.name}</span>
 					</button>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import AboutComputer from '$lib/components/AboutComputer.svelte';
 
@@ -8,13 +9,15 @@
 			label: 'Browse public repo',
 			description: 'Open Nautilus and inspect public ATProto collections.',
 			icon: '/icons/humanity/apps/system-file-manager.svg',
-			href: '/browse'
+			href: '/browse',
+			external: false
 		},
 		{
 			label: 'Getting started',
 			description: 'Read the short guide in Document Viewer.',
 			icon: '/icons/humanity/mimes/gnome-mime-application-pdf.svg',
-			href: '/docs/getting-started'
+			href: '/docs/getting-started',
+			external: false
 		},
 		{
 			label: 'Project source',
@@ -23,7 +26,7 @@
 			href: 'https://tangled.org/desertthunder.dev/ibex',
 			external: true
 		}
-	];
+	] as const;
 
 	function openLink(link: (typeof quickLinks)[number]) {
 		if (link.external) {
@@ -31,7 +34,7 @@
 			return;
 		}
 
-		void goto(link.href);
+		void goto(resolve(link.href));
 	}
 </script>
 

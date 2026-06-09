@@ -13,7 +13,9 @@
 		"lint": "prettier --write . && eslint . --fix",
 		"format": "prettier --write .",
 		"test": "vitest",
-		"test:unit": "npm run test -- --run"
+		"test:unit": "npm run test -- --run",
+		"cf:preview": "pnpm build && wrangler pages dev build",
+		"cf:deploy": "pnpm build && wrangler pages deploy build"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
@@ -39,7 +41,8 @@
 		"typescript-eslint": "^8.58.1",
 		"vite": "^8.0.7",
 		"vitest": "^4.1.3",
-		"vitest-browser-svelte": "^2.1.0"
+		"vitest-browser-svelte": "^2.1.0",
+		"wrangler": "^4.99.0"
 	},
 	"dependencies": {
 		"@atcute/atproto": "^4.0.2",

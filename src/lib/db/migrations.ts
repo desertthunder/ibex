@@ -13,10 +13,7 @@ export type MigrationStatus = {
 };
 
 export const migrations: readonly Migration[] = [
-	{
-		id: '202606090001_dexie_cache_schema',
-		description: 'Create local Dexie cache stores and indexes.'
-	}
+	{ id: '202606090001_dexie_cache_schema', description: 'Create local Dexie cache stores and indexes.' }
 ];
 
 export async function getMigrationStatus(db: DbClient): Promise<MigrationStatus> {
