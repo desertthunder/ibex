@@ -4,6 +4,7 @@
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import favicon from '$lib/assets/favicon.svg';
+	import { desktopSession } from '$lib/desktop-session.svelte';
 	import { getDatabase, resetLocalDatabase, runMigrations } from '$lib/db';
 	import { errorMessage } from '$lib/utils/errors';
 	import { windowManager } from '$lib/window-manager.svelte';
@@ -13,6 +14,7 @@
 	import DesktopIcon from '$lib/components/DesktopIcon.svelte';
 	import Gedit from '$lib/components/Gedit.svelte';
 	import GnomePanel from '$lib/components/GnomePanel.svelte';
+	import LockScreen from '$lib/components/LockScreen.svelte';
 	import NativeWindow from '$lib/components/NativeWindow.svelte';
 	import SetupDialog from '$lib/components/SetupDialog.svelte';
 	import '$lib/styles/style.css';
@@ -68,7 +70,11 @@
 		showAboutComputer = windowManager.getWindow('about-computer')?.isOpen ?? false;
 
 		if (repoBrowser.selectedRecord) {
-			windowManager.setTitle('gedit', `${repoBrowser.selectedRecord.rkey}.json - gedit`, repoBrowser.selectedRecord.icon);
+			windowManager.setTitle(
+				'gedit',
+				`${repoBrowser.selectedRecord.rkey}.json - gedit`,
+				repoBrowser.selectedRecord.icon
+			);
 		}
 	});
 
@@ -117,6 +123,8 @@
 	}
 
 	async function waitForMinimumBootTime(startedAt: number) {
+		// TODO: this should be configurable/off after migrations are done
+		// We probably need to track app version
 		const remaining = 2500 - (performance.now() - startedAt);
 
 		if (remaining > 0) {
@@ -212,6 +220,10 @@
 				</aside>
 			{/if}
 		</main>
+
+		{#if desktopSession.isLocked}
+			<LockScreen identity={accountSetup.identity} onunlock={() => desktopSession.unlock()} />
+		{/if}
 	</div>
 {/if}
 
