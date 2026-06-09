@@ -1,6 +1,7 @@
 import { Client, ok, simpleFetchHandler } from '@atcute/client';
 import type { ActorIdentifier, Nsid } from '@atcute/lexicons/syntax';
 import type {} from '@atcute/atproto';
+import { errorMessage } from '$lib/utils/errors';
 import type { AccountIdentity } from './identity';
 
 export type CollectionSummary = { name: string; icon: string; loadedCount: number | null };
@@ -56,7 +57,7 @@ class RepoBrowserState {
 				await this.selectCollection(identity, this.selectedCollection);
 			}
 		} catch (unknownError) {
-			this.error = messageFromError(unknownError, 'Could not load repository collections.');
+			this.error = errorMessage(unknownError, 'Could not load repository collections.');
 		} finally {
 			this.isLoadingCollections = false;
 		}
@@ -86,7 +87,7 @@ class RepoBrowserState {
 			);
 		} catch (unknownError) {
 			this.records = [];
-			this.error = messageFromError(unknownError, `Could not load records for ${collectionName}.`);
+			this.error = errorMessage(unknownError, `Could not load records for ${collectionName}.`);
 		} finally {
 			this.isLoadingRecords = false;
 		}
@@ -177,8 +178,4 @@ function formatRecordTime(value: string | null) {
 		hour: 'numeric',
 		minute: '2-digit'
 	}).format(date);
-}
-
-function messageFromError(error: unknown, fallback: string) {
-	return error instanceof Error ? error.message : fallback;
 }

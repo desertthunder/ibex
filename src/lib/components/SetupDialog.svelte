@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolveAccount, type AccountIdentity } from '$lib/atproto/identity';
 	import { accountSetup, setupDefaults } from '$lib/atproto/setup.svelte';
+	import { errorMessage } from '$lib/utils/errors';
 
 	let handle = $state(setupDefaults.handle);
 	let resolvedIdentity = $state<AccountIdentity | null>(null);
@@ -17,7 +18,7 @@
 		try {
 			resolvedIdentity = await resolveAccount(handle);
 		} catch (unknownError) {
-			error = unknownError instanceof Error ? unknownError.message : 'Could not resolve that handle.';
+			error = errorMessage(unknownError, 'Could not resolve that handle.');
 		} finally {
 			isResolving = false;
 		}

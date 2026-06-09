@@ -5,6 +5,7 @@
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import favicon from '$lib/assets/favicon.svg';
 	import { getDatabase, resetLocalDatabase, runMigrations } from '$lib/db';
+	import { errorMessage } from '$lib/utils/errors';
 	import { windowManager } from '$lib/window-manager.svelte';
 	import AboutComputer from '$lib/components/AboutComputer.svelte';
 	import AppWindow from '$lib/components/AppWindow.svelte';
@@ -92,7 +93,7 @@
 			accountSetup.load();
 			bootStatus = 'ready';
 		} catch (error) {
-			bootError = error instanceof Error ? error.message : 'Could not start the local cache.';
+			bootError = errorMessage(error, 'Could not start the local cache.');
 			bootStatus = 'error';
 		}
 	}
@@ -106,7 +107,7 @@
 			await resetLocalDatabase();
 			await bootDesktop();
 		} catch (error) {
-			bootError = error instanceof Error ? error.message : 'Could not reset the local cache.';
+			bootError = errorMessage(error, 'Could not reset the local cache.');
 			bootStatus = 'error';
 		}
 	}

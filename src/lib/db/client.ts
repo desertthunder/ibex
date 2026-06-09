@@ -1,4 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
+import { errorMessage } from '$lib/utils/errors';
 import { resetLocalCacheDatabase } from './migrations';
 import { DB_DATA_DIR, SQL } from './schema';
 
@@ -83,7 +84,7 @@ async function initializeDatabase(): Promise<DbClient> {
 			status: 'error',
 			finishedAt: new Date().toISOString(),
 			wasm: 'error',
-			error: messageFromError(error)
+			error: errorMessage(error)
 		};
 		databasePromise = null;
 		throw error;
@@ -114,8 +115,4 @@ function createIdleReport(): DatabaseStartupReport {
 		persisted: null,
 		error: null
 	};
-}
-
-function messageFromError(error: unknown) {
-	return error instanceof Error ? error.message : String(error);
 }
