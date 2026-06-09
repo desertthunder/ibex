@@ -8,14 +8,13 @@ Target release: `v1.0.0`.
 
 #### Added
 
-- PGlite-backed local cache/search foundation with WASM build support.
-  - Transactional schema migrations for accounts, cached records, collection
-    sync state, and record search.
-- Ubuntu-purple boot splash that initializes PGlite, runs migrations, and offers
-  recovery actions.
-- Cache-aware AT Protocol browsing: live record fetches populate PGlite and offline
-  failures can fall back to cached collections/records.
-- Full-text cache search in the Nautilus-style collection browser.
+- Dexie-backed local cache/search foundation using IndexedDB.
+  - Versioned stores for accounts, cached records, and collection sync state.
+- Ubuntu-purple boot splash that initializes the local cache and offers recovery
+  actions.
+- Cache-aware AT Protocol browsing: live record fetches populate IndexedDB and
+  offline failures can fall back to cached collections/records.
+- FlexSearch-powered cache search in the Nautilus-style collection browser.
 - Atmosphere app logo mapping for known AT Protocol collection namespaces.
 - Cursor-based record pagination with a generator-backed “Load more records” flow.
 

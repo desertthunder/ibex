@@ -52,6 +52,9 @@
 	<form class="handle-form" onsubmit={(event) => event.preventDefault()}>
 		<label for="handle">Handle</label>
 		<div class="handle-row">
+			<!-- TODO: setup typeahead
+			     https://docs.bsky.app/docs/api/app-bsky-actor-search-actors-typeahead
+			-->
 			<input id="handle" bind:value={handle} placeholder="desertthunder.dev" autocomplete="username" />
 			<button type="button" onclick={resolveHandle} disabled={isResolving}>
 				{isResolving ? 'Resolving…' : 'Resolve'}

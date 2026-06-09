@@ -1,20 +1,23 @@
-import { PGlite } from '@electric-sql/pglite';
+import 'fake-indexeddb/auto';
 import { afterEach, describe, expect, it } from 'vitest';
+import { IntrepidIbexDb } from '../client';
 import { runMigrations } from '../migrations';
 import { searchCachedRecords } from '../search';
 import { getCachedRecordByUri, listCachedRecords, upsertCachedRecord } from './records';
 
-const clients: PGlite[] = [];
+const clients: IntrepidIbexDb[] = [];
 
 async function createMigratedDb() {
-	const db = await PGlite.create();
+	const db = new IntrepidIbexDb(`test-records-${crypto.randomUUID()}`);
 	clients.push(db);
 	await runMigrations(db);
 	return db;
 }
 
 afterEach(async () => {
-	await Promise.all(clients.splice(0).map((db) => db.close()));
+	for (const db of clients.splice(0)) {
+		await db.delete();
+	}
 });
 
 describe('cached records repository', () => {

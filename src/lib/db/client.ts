@@ -1,16 +1,73 @@
-import { PGlite } from '@electric-sql/pglite';
+import Dexie, { type EntityTable } from 'dexie';
 import { errorMessage } from '$lib/utils/errors';
 import { resetLocalCacheDatabase } from './migrations';
-import { DB_DATA_DIR, SQL } from './schema';
+import { DB_NAME } from './schema';
 
-export type DbClient = PGlite;
+export type SyncStatus = 'fresh' | 'stale' | 'deleted';
+
+export type DbAccount = {
+	did: string;
+	handle: string;
+	pds: string | null;
+	label: string | null;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type DbCachedRecord = {
+	id?: number;
+	accountDid: string;
+	repoDid: string;
+	collection: string;
+	rkey: string;
+	uri: string;
+	cid: string;
+	value: unknown;
+	indexedText: string;
+	createdAt: string | null;
+	indexedAt: string | null;
+	updatedAt: string | null;
+	storedAt: string;
+	sortKey: string;
+	syncStatus: SyncStatus;
+};
+
+export type DbCollectionSyncState = {
+	key: string;
+	accountDid: string;
+	repoDid: string;
+	collection: string;
+	cursor: string | null;
+	lastSyncedAt: string | null;
+	lastError: string | null;
+	updatedAt: string;
+};
+
+export class IntrepidIbexDb extends Dexie {
+	accounts!: EntityTable<DbAccount, 'did'>;
+	cachedRecords!: EntityTable<DbCachedRecord, 'id'>;
+	collectionSyncState!: EntityTable<DbCollectionSyncState, 'key'>;
+
+	constructor(name = DB_NAME) {
+		super(name);
+
+		this.version(1).stores({
+			accounts: '&did, handle',
+			cachedRecords:
+				'++id, &uri, &[repoDid+collection+rkey], repoDid, collection, [repoDid+collection], [repoDid+collection+sortKey]',
+			collectionSyncState: '&key, [accountDid+repoDid], [accountDid+repoDid+collection]'
+		});
+	}
+}
+
+export type DbClient = IntrepidIbexDb;
 
 export type DatabaseStartupReport = {
 	status: 'idle' | 'loading' | 'ready' | 'error';
 	dataDir: string | null;
 	startedAt: string | null;
 	finishedAt: string | null;
-	wasm: 'not_checked' | 'loaded' | 'error';
+	driver: 'not_checked' | 'loaded' | 'error';
 	indexedDb: 'not_used' | 'available' | 'unavailable';
 	persisted: boolean | null;
 	error: string | null;
@@ -34,7 +91,7 @@ export async function getDatabase(): Promise<DbClient> {
 
 export async function closeDatabase(): Promise<void> {
 	if (database) {
-		await database.close();
+		database.close();
 	}
 
 	database = null;
@@ -52,29 +109,28 @@ export async function resetLocalDatabase(): Promise<void> {
 }
 
 async function initializeDatabase(): Promise<DbClient> {
-	const dataDir = getDefaultDataDir();
 	startupReport = {
 		status: 'loading',
-		dataDir: dataDir ?? null,
+		dataDir: DB_NAME,
 		startedAt: new Date().toISOString(),
 		finishedAt: null,
-		wasm: 'not_checked',
-		indexedDb: getIndexedDbStatus(dataDir),
+		driver: 'not_checked',
+		indexedDb: getIndexedDbStatus(),
 		persisted: null,
 		error: null
 	};
 
 	try {
-		const client = await PGlite.create(dataDir);
-		await client.query(SQL.ping);
+		const client = new IntrepidIbexDb();
+		await client.open();
 
 		database = client;
 		startupReport = {
 			...startupReport,
 			status: 'ready',
 			finishedAt: new Date().toISOString(),
-			wasm: 'loaded',
-			persisted: dataDir?.startsWith('idb://') === true && startupReport.indexedDb === 'available'
+			driver: 'loaded',
+			persisted: startupReport.indexedDb === 'available'
 		};
 
 		return client;
@@ -83,7 +139,7 @@ async function initializeDatabase(): Promise<DbClient> {
 			...startupReport,
 			status: 'error',
 			finishedAt: new Date().toISOString(),
-			wasm: 'error',
+			driver: 'error',
 			error: errorMessage(error)
 		};
 		databasePromise = null;
@@ -91,17 +147,8 @@ async function initializeDatabase(): Promise<DbClient> {
 	}
 }
 
-function getDefaultDataDir() {
-	return isBrowser() ? DB_DATA_DIR : undefined;
-}
-
-function getIndexedDbStatus(dataDir: string | undefined): DatabaseStartupReport['indexedDb'] {
-	if (!dataDir?.startsWith('idb://')) return 'not_used';
-	return isBrowser() && 'indexedDB' in globalThis ? 'available' : 'unavailable';
-}
-
-function isBrowser() {
-	return typeof globalThis.window !== 'undefined';
+function getIndexedDbStatus(): DatabaseStartupReport['indexedDb'] {
+	return typeof globalThis.indexedDB === 'undefined' ? 'unavailable' : 'available';
 }
 
 function createIdleReport(): DatabaseStartupReport {
@@ -110,7 +157,7 @@ function createIdleReport(): DatabaseStartupReport {
 		dataDir: null,
 		startedAt: null,
 		finishedAt: null,
-		wasm: 'not_checked',
+		driver: 'not_checked',
 		indexedDb: 'not_used',
 		persisted: null,
 		error: null

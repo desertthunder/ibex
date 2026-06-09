@@ -4,22 +4,10 @@ import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
 	plugins: [sveltekit()],
-	assetsInclude: ['**/*.wasm'],
-	optimizeDeps: { exclude: ['@electric-sql/pglite'] },
 	build: {
 		rolldownOptions: {
 			onLog(level, log, defaultHandler) {
 				const message = typeof log === 'string' ? log : log.message;
-
-				/**
-				 * PGlite currently emits Rolldown direct-eval warnings from its own
-				 * packaged code. The app lazy-loads PGlite behind DB operations, and
-				 * this filter is intentionally scoped to that third-party package so
-				 * eval warnings from app code still surface.
-				 */
-				if (level === 'warn' && message.includes('Use of direct `eval`') && message.includes('@electric-sql/pglite')) {
-					return;
-				}
 
 				if (level === 'warn' && message.includes('[PLUGIN_TIMINGS]')) {
 					return;
