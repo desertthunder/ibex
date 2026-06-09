@@ -1,26 +1,12 @@
 import { Client, ok, simpleFetchHandler } from '@atcute/client';
 import type { ActorIdentifier } from '@atcute/lexicons/syntax';
 import type {} from '@atcute/atproto';
-import {
-	cacheFetchedRecords,
-	getDatabase,
-	listCachedCollections,
-	listCachedRecords,
-	searchCachedRecords,
-	updateCollectionSyncState,
-	type CachedRecord,
-	type CachedRecordInput
-} from '$lib/db';
+import type { CachedRecord, CachedRecordInput } from '$lib/db';
 import { errorMessage } from '$lib/utils/errors';
 import { appLabelForCollection, collectionIconMatch } from './collection-icons';
 import { listRecordPages, type RecordPage } from './pagination';
-import {
-	isRecordValue,
-	type AccountIdentity,
-	type CollectionSummary,
-	type RepoRecordSummary,
-	type UnknownRecord
-} from './types';
+import { isRecordValue } from './types';
+import type { AccountIdentity, CollectionSummary, RepoRecordSummary, UnknownRecord } from './types';
 
 export type { CollectionSummary, RepoRecordSummary } from './types';
 
@@ -125,12 +111,15 @@ class RepoBrowserState {
 
 	async loadCollectionsFromCache(identity: AccountIdentity) {
 		try {
+			const { getDatabase, listCachedCollections } = await import('$lib/db');
 			const db = await getDatabase();
 			const collections = await listCachedCollections(db, identity.did);
 
 			if (collections.length === 0) return false;
 
-			this.collections = collections.map((collection) => collectionSummaryForName(collection.name, collection.loadedCount));
+			this.collections = collections.map((collection) =>
+				collectionSummaryForName(collection.name, collection.loadedCount)
+			);
 			this.selectedCollection = preferredCollection(this.collections.map((collection) => collection.name));
 
 			if (this.selectedCollection) {
@@ -160,6 +149,7 @@ class RepoBrowserState {
 		this.error = null;
 
 		try {
+			const { getDatabase, searchCachedRecords } = await import('$lib/db');
 			const db = await getDatabase();
 			const results = await searchCachedRecords(db, normalizedQuery, {
 				repoDid: identity.did,
@@ -168,7 +158,7 @@ class RepoBrowserState {
 			this.records = results.map((record) => summarizeCachedRecord(record, identity.handle));
 		} catch (searchError) {
 			this.records = [];
-			this.error = errorMessage(searchError, 'Could not search cached records.');
+			this.error = errorMessage(searchError, 'Could not search records.');
 		} finally {
 			this.isSearching = false;
 		}
@@ -176,6 +166,7 @@ class RepoBrowserState {
 
 	async loadRecordsFromCache(identity: AccountIdentity, collectionName: string) {
 		try {
+			const { getDatabase, listCachedRecords } = await import('$lib/db');
 			const db = await getDatabase();
 			const records = await listCachedRecords(db, { repoDid: identity.did, collection: collectionName, limit: 25 });
 
@@ -269,6 +260,7 @@ async function cacheLiveRecords(
 	cursor: string | null
 ) {
 	try {
+		const { cacheFetchedRecords, getDatabase, updateCollectionSyncState } = await import('$lib/db');
 		const db = await getDatabase();
 		await cacheFetchedRecords(
 			db,

@@ -1,4 +1,4 @@
-export type WindowId = 'main' | 'about-computer' | 'gedit';
+export type WindowId = 'main' | 'about-computer' | 'gedit' | 'document-viewer';
 
 export type ManagedWindow = {
 	id: WindowId;
@@ -38,10 +38,19 @@ class WindowManager {
 			isMinimized: false,
 			isMaximized: false,
 			zIndex: 3
+		},
+		{
+			id: 'document-viewer',
+			title: 'CHANGELOG.md - Document Viewer',
+			icon: '/icons/humanity/mimes/gnome-mime-application-pdf.svg',
+			isOpen: false,
+			isMinimized: false,
+			isMaximized: false,
+			zIndex: 4
 		}
 	]);
 
-	private nextZIndex = 3;
+	private nextZIndex = 4;
 
 	get openWindows() {
 		return this.windows.filter((window) => window.isOpen);

@@ -5,13 +5,13 @@
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import favicon from '$lib/assets/favicon.svg';
 	import { desktopSession } from '$lib/desktop-session.svelte';
-	import { getDatabase, resetLocalDatabase, runMigrations } from '$lib/db';
 	import { errorMessage } from '$lib/utils/errors';
 	import { windowManager } from '$lib/window-manager.svelte';
 	import AboutComputer from '$lib/components/AboutComputer.svelte';
 	import AppWindow from '$lib/components/AppWindow.svelte';
 	import BootSplash from '$lib/components/BootSplash.svelte';
 	import DesktopIcon from '$lib/components/DesktopIcon.svelte';
+	import DocumentViewer from '$lib/components/DocumentViewer.svelte';
 	import Gedit from '$lib/components/Gedit.svelte';
 	import GnomePanel from '$lib/components/GnomePanel.svelte';
 	import LockScreen from '$lib/components/LockScreen.svelte';
@@ -26,6 +26,17 @@
 	let bootStep = $state('Loading database');
 	let bootError = $state<string | null>(null);
 	let cacheDisabled = $state(false);
+
+	const windowTitle = $derived(
+		accountSetup.isConfigured ? 'AT Protocol Collections - Intrepid Ibex' : 'AT Protocol Account Setup'
+	);
+	const windowIcon = $derived(
+		accountSetup.isConfigured ? '/icons/humanity/apps/internet-feed-reader.svg' : '/icons/humanity/places/user-home.svg'
+	);
+	const mainWindow = $derived(windowManager.getWindow('main'));
+	const aboutWindow = $derived(windowManager.getWindow('about-computer'));
+	const geditWindow = $derived(windowManager.getWindow('gedit'));
+	const documentViewerWindow = $derived(windowManager.getWindow('document-viewer'));
 
 	const shortcuts = $derived([
 		{
@@ -49,21 +60,17 @@
 			}
 		},
 		{
+			label: 'Document Viewer',
+			icon: '/icons/humanity/mimes/gnome-mime-application-pdf.svg',
+			selected: documentViewerWindow?.isOpen && !documentViewerWindow.isMinimized,
+			onactivate: () => windowManager.open('document-viewer')
+		},
+		{
 			label: 'Trash',
 			icon: '/icons/humanity/places/user-trash.svg',
 			onactivate: () => window.open('https://tangled.org/desertthunder.dev/ibex', '_blank', 'noopener,noreferrer')
 		}
 	]);
-
-	const windowTitle = $derived(
-		accountSetup.isConfigured ? 'AT Protocol Collections - Intrepid Ibex' : 'AT Protocol Account Setup'
-	);
-	const windowIcon = $derived(
-		accountSetup.isConfigured ? '/icons/humanity/apps/internet-feed-reader.svg' : '/icons/humanity/places/user-home.svg'
-	);
-	const mainWindow = $derived(windowManager.getWindow('main'));
-	const aboutWindow = $derived(windowManager.getWindow('about-computer'));
-	const geditWindow = $derived(windowManager.getWindow('gedit'));
 
 	$effect(() => {
 		windowManager.setTitle('main', windowTitle, windowIcon);
@@ -88,12 +95,22 @@
 		bootError = null;
 
 		try {
+			const { getDatabase, getMigrationStatus, runMigrations } = await import('$lib/db');
+
 			bootStep = 'Loading database';
 			const db = await getDatabase();
-			bootStep = 'Applying migrations';
-			await runMigrations(db);
-			bootStep = 'Starting desktop';
-			await waitForMinimumBootTime(bootStartedAt);
+			bootStep = 'Checking migrations';
+			const migrationStatus = await getMigrationStatus(db);
+
+			if (migrationStatus.pending.length > 0) {
+				bootStep = 'Applying migrations';
+				await runMigrations(db);
+				bootStep = 'Starting desktop';
+				await waitForMinimumBootTime(bootStartedAt);
+			} else {
+				bootStep = 'Starting desktop';
+			}
+
 			accountSetup.load();
 			bootStatus = 'ready';
 		} catch (error) {
@@ -108,6 +125,7 @@
 		bootError = null;
 
 		try {
+			const { resetLocalDatabase } = await import('$lib/db');
 			await resetLocalDatabase();
 			await bootDesktop();
 		} catch (error) {
@@ -123,9 +141,8 @@
 	}
 
 	async function waitForMinimumBootTime(startedAt: number) {
-		// TODO: this should be configurable/off after migrations are done
-		// We probably need to track app version
-		const remaining = 2500 - (performance.now() - startedAt);
+		const minimumBootTimeMs = 2500;
+		const remaining = minimumBootTimeMs - (performance.now() - startedAt);
 
 		if (remaining > 0) {
 			await new Promise((resolve) => setTimeout(resolve, remaining));
@@ -191,6 +208,26 @@
 						onmaximize={() => windowManager.toggleMaximize('about-computer')}
 						onclose={() => windowManager.close('about-computer')}>
 						<AboutComputer />
+					</AppWindow>
+				</div>
+			{/if}
+
+			{#if documentViewerWindow?.isOpen && !documentViewerWindow.isMinimized}
+				<div
+					class="document-viewer-window"
+					class:maximized={documentViewerWindow.isMaximized}
+					style:z-index={documentViewerWindow.zIndex}>
+					<AppWindow
+						windowId="document-viewer"
+						title="CHANGELOG.md - Document Viewer"
+						icon="/icons/humanity/mimes/gnome-mime-application-pdf.svg"
+						address="/docs/changelog"
+						maximized={documentViewerWindow.isMaximized}
+						onfocus={() => windowManager.focus('document-viewer')}
+						onminimize={() => windowManager.minimize('document-viewer')}
+						onmaximize={() => windowManager.toggleMaximize('document-viewer')}
+						onclose={() => windowManager.close('document-viewer')}>
+						<DocumentViewer slug="changelog" />
 					</AppWindow>
 				</div>
 			{/if}
@@ -269,6 +306,7 @@
 
 	.primary-window.maximized,
 	.about-window.maximized,
+	.document-viewer-window.maximized,
 	.gedit-window.maximized {
 		position: fixed;
 		top: 1.75rem;
@@ -281,6 +319,7 @@
 	}
 
 	.about-window,
+	.document-viewer-window,
 	.gedit-window {
 		position: absolute;
 		z-index: 3;
@@ -293,6 +332,13 @@
 		height: min(28rem, calc(100vh - 5rem));
 	}
 
+	.document-viewer-window {
+		top: min(5rem, 10vh);
+		left: min(16rem, 18vw);
+		width: min(48rem, calc(100vw - 2rem));
+		height: min(38rem, calc(100vh - 5rem));
+	}
+
 	.gedit-window {
 		top: min(6rem, 12vh);
 		left: min(20rem, 24vw);
@@ -301,6 +347,7 @@
 	}
 
 	.about-window :global(.app-window),
+	.document-viewer-window :global(.app-window),
 	.gedit-window :global(.app-window) {
 		height: 100%;
 	}

@@ -149,12 +149,12 @@
 					event.preventDefault();
 					searchRecords();
 				}}>
-				<label for="record-search">Search cache</label>
+				<label for="record-search">Search</label>
 				<div>
 					<input
 						id="record-search"
 						bind:value={searchQuery}
-						placeholder="Search cached records"
+						placeholder="Search records"
 						disabled={!repoBrowser.selectedCollection || repoBrowser.isLoadingRecords || repoBrowser.isSearching} />
 					<button type="submit" disabled={!searchQuery.trim() || repoBrowser.isSearching}>Search</button>
 					{#if repoBrowser.searchQuery}
