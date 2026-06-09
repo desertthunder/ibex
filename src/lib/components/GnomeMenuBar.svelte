@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
 	import { desktopSession } from '$lib/desktop-session.svelte';
@@ -9,11 +10,19 @@
 		windowManager.close('gedit');
 		repoBrowser.reset();
 		accountSetup.reset();
+		void goto('/browse');
+	}
+
+	function openCollection(collectionName: string) {
+		if (!accountSetup.identity) return;
+
+		void goto('/browse');
+		repoBrowser.selectCollection(accountSetup.identity, collectionName);
 	}
 </script>
 
 <nav class="panel-menus" aria-label="System menus">
-	<button class="applications-menu" type="button">
+	<button class="applications-menu" type="button" onclick={() => goto('/')}>
 		<img src="/icons/humanity/apps/system-file-manager.svg" alt="" width="20" height="20" />
 		<span>Applications</span>
 	</button>
@@ -26,8 +35,7 @@
 				{#each repoBrowser.collections.slice(0, 10) as collection (collection.name)}
 					<button
 						type="button"
-						onclick={() =>
-							accountSetup.identity && repoBrowser.selectCollection(accountSetup.identity, collection.name)}>
+						onclick={() => openCollection(collection.name)}>
 						<img src={collection.icon} alt="" width="16" height="16" />
 						<span>{collection.name}</span>
 					</button>
@@ -42,7 +50,7 @@
 		<summary>System</summary>
 		<div class="menu-popover system-popover">
 			{#if accountSetup.identity}
-				<p class="menu-heading">Signed in as @{accountSetup.identity.handle}</p>
+				<p class="menu-heading">Browsing @{accountSetup.identity.handle}</p>
 			{/if}
 			<button type="button" onclick={() => desktopSession.lock()}>
 				<img src="/icons/humanity/status/network-wireless-encrypted.svg" alt="" width="16" height="16" />
@@ -50,7 +58,7 @@
 			</button>
 			<button type="button" onclick={changeAccount}>
 				<img src="/icons/humanity/places/user-home.svg" alt="" width="16" height="16" />
-				<span>Change Account…</span>
+				<span>Change Repo…</span>
 			</button>
 		</div>
 	</details>

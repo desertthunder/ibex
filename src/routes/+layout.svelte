@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { dev } from '$app/environment';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
@@ -29,12 +30,20 @@
 	let cacheDisabled = $state(false);
 	let handledRecordRoute = $state<string | null>(null);
 
-	const windowTitle = $derived(
-		accountSetup.isConfigured ? 'AT Protocol Collections - Intrepid Ibex' : 'AT Protocol Account Setup'
-	);
-	const windowIcon = $derived(
-		accountSetup.isConfigured ? '/icons/humanity/apps/internet-feed-reader.svg' : '/icons/humanity/places/user-home.svg'
-	);
+	const routeRequiresSetup = $derived(page.route.id === '/browse' && !accountSetup.isConfigured);
+	const routeUsesNativeWindow = $derived(page.route.id === '/' || page.route.id?.startsWith('/docs'));
+	const windowTitle = $derived.by(() => {
+		if (routeRequiresSetup) return 'AT Protocol Account Setup';
+		if (page.route.id === '/') return 'Welcome to Intrepid Ibex';
+		if (page.route.id?.startsWith('/docs')) return 'Getting Started - Document Viewer';
+		return 'AT Protocol Collections - Intrepid Ibex';
+	});
+	const windowIcon = $derived.by(() => {
+		if (routeRequiresSetup) return '/icons/humanity/places/user-home.svg';
+		if (page.route.id === '/') return '/icons/humanity/devices/computer.svg';
+		if (page.route.id?.startsWith('/docs')) return '/icons/humanity/mimes/gnome-mime-application-pdf.svg';
+		return '/icons/humanity/apps/internet-feed-reader.svg';
+	});
 	const mainWindow = $derived(windowManager.getWindow('main'));
 	const aboutWindow = $derived(windowManager.getWindow('about-computer'));
 	const geditWindow = $derived(windowManager.getWindow('gedit'));
@@ -44,13 +53,20 @@
 		{
 			label: 'ibex Home',
 			icon: '/icons/humanity/places/user-home.svg',
-			selected: false,
-			onactivate: () => windowManager.restore('main')
+			selected: page.route.id === '/',
+			onactivate: () => {
+				windowManager.restore('main');
+				void goto('/');
+			}
 		},
 		{
 			label: 'Collections',
 			icon: '/icons/humanity/places/folder.svg',
-			onactivate: () => windowManager.restore('main')
+			selected: page.route.id === '/browse' || page.route.id?.startsWith('/records'),
+			onactivate: () => {
+				windowManager.restore('main');
+				void goto('/browse');
+			}
 		},
 		{
 			label: 'Computer',
@@ -64,8 +80,11 @@
 		{
 			label: 'Document Viewer',
 			icon: '/icons/humanity/mimes/gnome-mime-application-pdf.svg',
-			selected: documentViewerWindow?.isOpen && !documentViewerWindow.isMinimized,
-			onactivate: () => windowManager.open('document-viewer')
+			selected: page.route.id?.startsWith('/docs') || (documentViewerWindow?.isOpen && !documentViewerWindow.isMinimized),
+			onactivate: () => {
+				windowManager.restore('main');
+				void goto('/docs');
+			}
 		},
 		{
 			label: 'Trash',
@@ -216,20 +235,33 @@
 
 			{#if mainWindow?.isOpen && !mainWindow.isMinimized}
 				<div class="primary-window" class:maximized={mainWindow.isMaximized} style:z-index={mainWindow.zIndex}>
-					<AppWindow
-						windowId="main"
-						title={windowTitle}
-						icon={windowIcon}
-						maximized={mainWindow.isMaximized}
-						onfocus={() => windowManager.focus('main')}
-						onminimize={() => windowManager.minimize('main')}
-						onmaximize={() => windowManager.toggleMaximize('main')}>
-						{#if accountSetup.isConfigured}
+					{#if routeUsesNativeWindow}
+						<NativeWindow
+							windowId="main"
+							title={windowTitle}
+							icon={windowIcon}
+							maximized={mainWindow.isMaximized}
+							onfocus={() => windowManager.focus('main')}
+							onminimize={() => windowManager.minimize('main')}
+							onmaximize={() => windowManager.toggleMaximize('main')}>
 							{@render children()}
-						{:else}
-							<SetupDialog />
-						{/if}
-					</AppWindow>
+						</NativeWindow>
+					{:else}
+						<AppWindow
+							windowId="main"
+							title={windowTitle}
+							icon={windowIcon}
+							maximized={mainWindow.isMaximized}
+							onfocus={() => windowManager.focus('main')}
+							onminimize={() => windowManager.minimize('main')}
+							onmaximize={() => windowManager.toggleMaximize('main')}>
+							{#if routeRequiresSetup}
+								<SetupDialog />
+							{:else}
+								{@render children()}
+							{/if}
+						</AppWindow>
+					{/if}
 				</div>
 			{/if}
 
@@ -258,15 +290,15 @@
 					style:z-index={documentViewerWindow.zIndex}>
 					<AppWindow
 						windowId="document-viewer"
-						title="CHANGELOG.md - Document Viewer"
+						title="Getting Started - Document Viewer"
 						icon="/icons/humanity/mimes/gnome-mime-application-pdf.svg"
-						address="/docs/changelog"
+						address="/docs/getting-started"
 						maximized={documentViewerWindow.isMaximized}
 						onfocus={() => windowManager.focus('document-viewer')}
 						onminimize={() => windowManager.minimize('document-viewer')}
 						onmaximize={() => windowManager.toggleMaximize('document-viewer')}
 						onclose={() => windowManager.close('document-viewer')}>
-						<DocumentViewer slug="changelog" />
+						<DocumentViewer slug="getting-started" />
 					</AppWindow>
 				</div>
 			{/if}

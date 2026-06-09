@@ -41,7 +41,7 @@ class WindowManager {
 		},
 		{
 			id: 'document-viewer',
-			title: 'CHANGELOG.md - Document Viewer',
+			title: 'Getting Started - Document Viewer',
 			icon: '/icons/humanity/mimes/gnome-mime-application-pdf.svg',
 			isOpen: false,
 			isMinimized: false,

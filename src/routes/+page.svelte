@@ -1,5 +1,5 @@
 <script lang="ts">
-	import CollectionBrowser from '$lib/components/CollectionBrowser.svelte';
+	import WelcomeScreen from '$lib/components/WelcomeScreen.svelte';
 </script>
 
-<CollectionBrowser />
+<WelcomeScreen />

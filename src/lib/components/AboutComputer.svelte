@@ -16,15 +16,15 @@
 		<dl>
 			<div>
 				<dt>Operating system</dt>
-				<dd>Intrepid Ibex Desktop 0.1</dd>
+				<dd>Svelte 5</dd>
 			</div>
 			<div>
 				<dt>Desktop environment</dt>
-				<dd>Classic GNOME-style shell</dd>
+				<dd>GNOME 2</dd>
 			</div>
 			<div>
 				<dt>Protocol</dt>
-				<dd>AT Protocol, public read-only mode</dd>
+				<dd>at://</dd>
 			</div>
 			<div>
 				<dt>Account</dt>
@@ -43,8 +43,8 @@
 
 	<p class="note">
 		View the project on
-		<a href="https://tangled.org/desertthunder.dev/ibex" target="_blank" rel="noreferrer">Tangled</a>.
-		Atmosphere logos courtesy of
+		<a href="https://tangled.org/desertthunder.dev/ibex" target="_blank" rel="noreferrer">Tangled</a>. Atmosphere logos
+		courtesy of
 		<a href="https://tangled.org/cozylittle.house/atmologos" target="_blank" rel="noreferrer">atmologos</a>.
 	</p>
 </section>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { resolveAccount } from '$lib/atproto/identity';
 	import type { AccountIdentity } from '$lib/atproto/types';
 	import { accountSetup, setupDefaults } from '$lib/atproto/setup.svelte';
@@ -28,6 +29,7 @@
 	function useAccount() {
 		if (resolvedIdentity) {
 			accountSetup.save(resolvedIdentity);
+			void goto('/browse');
 		}
 	}
 </script>

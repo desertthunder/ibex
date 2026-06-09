@@ -23,6 +23,7 @@
 
 <style>
 	.docs-route {
-		height: 100vh;
+		height: 100%;
+		min-height: 0;
 	}
 </style>
