@@ -3,23 +3,13 @@ import type { ActorIdentifier } from '@atcute/lexicons/syntax';
 import type { Handle } from '@atcute/lexicons/syntax';
 import type {} from '@atcute/atproto';
 import type {} from '@atcute/bluesky';
+import type { AccountIdentity, DidDocument } from './types';
 
-export type AccountIdentity = {
-	handle: string;
-	did: string;
-	pds: string | null;
-	displayName: string | null;
-	avatar: string | null;
-	description: string | null;
-};
+export type { AccountIdentity } from './types';
 
 export const defaultIdentity = { handle: 'desertthunder.dev', did: 'did:plc:xg2vq45muivyy3xwatcehspu' };
 
 const publicApi = new Client({ handler: simpleFetchHandler({ service: 'https://public.api.bsky.app' }) });
-
-type DidDocument = {
-	service?: Array<{ id?: string; type?: string; serviceEndpoint?: string | string[] | Record<string, unknown> }>;
-};
 
 export async function resolveAccount(handle: string): Promise<AccountIdentity> {
 	const normalizedHandle = handle.trim().replace(/^@/, '').toLowerCase();

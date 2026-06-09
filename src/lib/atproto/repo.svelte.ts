@@ -1,22 +1,25 @@
 import { Client, ok, simpleFetchHandler } from '@atcute/client';
 import type { ActorIdentifier, Nsid } from '@atcute/lexicons/syntax';
 import type {} from '@atcute/atproto';
+import {
+	cacheFetchedRecords,
+	getDatabase,
+	listCachedCollections,
+	listCachedRecords,
+	updateCollectionSyncState,
+	type CachedRecord,
+	type CachedRecordInput
+} from '$lib/db';
 import { errorMessage } from '$lib/utils/errors';
-import type { AccountIdentity } from './identity';
+import {
+	isRecordValue,
+	type AccountIdentity,
+	type CollectionSummary,
+	type RepoRecordSummary,
+	type UnknownRecord
+} from './types';
 
-export type CollectionSummary = { name: string; icon: string; loadedCount: number | null };
-
-export type RepoRecordSummary = {
-	uri: string;
-	cid: string;
-	title: string;
-	body: string;
-	author: string;
-	modified: string;
-	collection: string;
-	rkey: string;
-	json: string;
-};
+export type { CollectionSummary, RepoRecordSummary } from './types';
 
 class RepoBrowserState {
 	collections = $state<CollectionSummary[]>([]);
@@ -57,7 +60,10 @@ class RepoBrowserState {
 				await this.selectCollection(identity, this.selectedCollection);
 			}
 		} catch (unknownError) {
-			this.error = errorMessage(unknownError, 'Could not load repository collections.');
+			const loadedFromCache = await this.loadCollectionsFromCache(identity);
+			this.error = loadedFromCache
+				? `Showing cached collections. ${errorMessage(unknownError, 'Could not load repository collections.')}`
+				: errorMessage(unknownError, 'Could not load repository collections.');
 		} finally {
 			this.isLoadingCollections = false;
 		}
@@ -85,11 +91,57 @@ class RepoBrowserState {
 			this.collections = this.collections.map((collection) =>
 				collection.name === collectionName ? { ...collection, loadedCount: response.records.length } : collection
 			);
+			void cacheLiveRecords(identity, collectionName, response.records);
 		} catch (unknownError) {
-			this.records = [];
-			this.error = errorMessage(unknownError, `Could not load records for ${collectionName}.`);
+			const loadedFromCache = await this.loadRecordsFromCache(identity, collectionName);
+			this.error = loadedFromCache
+				? `Showing cached records. ${errorMessage(unknownError, `Could not load records for ${collectionName}.`)}`
+				: errorMessage(unknownError, `Could not load records for ${collectionName}.`);
 		} finally {
 			this.isLoadingRecords = false;
+		}
+	}
+
+	async loadCollectionsFromCache(identity: AccountIdentity) {
+		try {
+			const db = await getDatabase();
+			const collections = await listCachedCollections(db, identity.did);
+
+			if (collections.length === 0) return false;
+
+			this.collections = collections.map((collection) => ({
+				name: collection.name,
+				icon: iconForCollection(collection.name),
+				loadedCount: collection.loadedCount
+			}));
+			this.selectedCollection = preferredCollection(this.collections.map((collection) => collection.name));
+
+			if (this.selectedCollection) {
+				await this.loadRecordsFromCache(identity, this.selectedCollection);
+			}
+
+			return true;
+		} catch (cacheError) {
+			console.warn('Could not read cached collections.', cacheError);
+			return false;
+		}
+	}
+
+	async loadRecordsFromCache(identity: AccountIdentity, collectionName: string) {
+		try {
+			const db = await getDatabase();
+			const records = await listCachedRecords(db, { repoDid: identity.did, collection: collectionName, limit: 25 });
+
+			if (records.length === 0) return false;
+
+			this.records = records.map((record) => summarizeCachedRecord(record, identity.handle));
+			this.collections = this.collections.map((collection) =>
+				collection.name === collectionName ? { ...collection, loadedCount: records.length } : collection
+			);
+			return true;
+		} catch (cacheError) {
+			console.warn('Could not read cached records.', cacheError);
+			return false;
 		}
 	}
 
@@ -123,8 +175,6 @@ export function iconForCollection(name: string) {
 	return '/icons/humanity/mimes/text-x-generic.svg';
 }
 
-type UnknownRecord = { uri: string; cid: string; value: unknown };
-
 function summarizeRecord(record: UnknownRecord, handle: string): RepoRecordSummary {
 	const value = isRecordValue(record.value) ? record.value : {};
 	const text = stringifyField(value.text) ?? stringifyField(value.name) ?? stringifyField(value.displayName);
@@ -146,8 +196,54 @@ function summarizeRecord(record: UnknownRecord, handle: string): RepoRecordSumma
 	};
 }
 
-function isRecordValue(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null;
+function summarizeCachedRecord(record: CachedRecord, handle: string): RepoRecordSummary {
+	return summarizeRecord({ uri: record.uri, cid: record.cid, value: record.value }, handle);
+}
+
+async function cacheLiveRecords(identity: AccountIdentity, collectionName: string, records: readonly UnknownRecord[]) {
+	try {
+		const db = await getDatabase();
+		await cacheFetchedRecords(
+			db,
+			records.map((record) => toCachedRecordInput(identity, collectionName, record))
+		);
+		await updateCollectionSyncState(db, {
+			accountDid: identity.did,
+			repoDid: identity.did,
+			collection: collectionName,
+			lastSyncedAt: new Date().toISOString(),
+			lastError: null
+		});
+	} catch (cacheError) {
+		console.warn('Could not write records to local cache.', cacheError);
+	}
+}
+
+function toCachedRecordInput(
+	identity: AccountIdentity,
+	collectionName: string,
+	record: UnknownRecord
+): CachedRecordInput {
+	const value = isRecordValue(record.value) ? record.value : {};
+	const text = stringifyField(value.text) ?? stringifyField(value.name) ?? stringifyField(value.displayName) ?? '';
+	const type = stringifyField(value.$type) ?? collectionName;
+	const createdAt = stringifyField(value.createdAt);
+	const indexedAt = stringifyField(value.indexedAt);
+	const updatedAt = stringifyField(value.updatedAt);
+
+	return {
+		accountDid: identity.did,
+		repoDid: identity.did,
+		collection: collectionName,
+		rkey: recordKeyFromUri(record.uri),
+		uri: record.uri,
+		cid: record.cid,
+		value: record.value,
+		indexedText: [type, text, record.uri].filter(Boolean).join('\n'),
+		createdAt,
+		indexedAt,
+		updatedAt
+	};
 }
 
 function stringifyField(value: unknown) {

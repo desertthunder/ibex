@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
-import { defaultIdentity, type AccountIdentity } from './identity';
+import { defaultIdentity } from './identity';
+import type { AccountIdentity } from './types';
 
 const storageKey = 'intrepid-ibex:account-identity';
 

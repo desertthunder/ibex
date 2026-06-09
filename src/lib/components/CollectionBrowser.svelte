@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
-	import { repoBrowser, type RepoRecordSummary } from '$lib/atproto/repo.svelte';
+	import { repoBrowser } from '$lib/atproto/repo.svelte';
+	import type { RepoRecordSummary } from '$lib/atproto/types';
 	import { windowManager } from '$lib/window-manager.svelte';
 
 	onMount(() => {

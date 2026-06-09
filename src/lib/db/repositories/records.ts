@@ -19,6 +19,8 @@ export type CachedRecord = CachedRecordInput & { storedAt: string; syncStatus: '
 
 export type ListCachedRecordsOptions = { repoDid: string; collection?: string; limit?: number; offset?: number };
 
+export type CachedCollectionSummary = { name: string; loadedCount: number; lastStoredAt: string | null };
+
 type CachedRecordRow = {
 	account_did: string;
 	repo_did: string;
@@ -113,6 +115,25 @@ export async function listCachedRecords(db: DbClient, options: ListCachedRecords
 	);
 
 	return result.rows.map(rowToCachedRecord);
+}
+
+export async function listCachedCollections(db: DbClient, repoDid: string): Promise<CachedCollectionSummary[]> {
+	const result = await db.query<{ collection: string; loaded_count: number; last_stored_at: string | null }>(
+		`
+			select collection, count(*)::int as loaded_count, max(stored_at) as last_stored_at
+			from ${TABLES.cachedRecords}
+			where repo_did = $1 and sync_status <> 'deleted'
+			group by collection
+			order by collection asc
+		`,
+		[repoDid]
+	);
+
+	return result.rows.map((row) => ({
+		name: row.collection,
+		loadedCount: row.loaded_count,
+		lastStoredAt: row.last_stored_at
+	}));
 }
 
 export async function getCachedRecordByUri(db: DbClient, uri: string): Promise<CachedRecord | null> {

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { resolveAccount, type AccountIdentity } from '$lib/atproto/identity';
+	import { resolveAccount } from '$lib/atproto/identity';
+	import type { AccountIdentity } from '$lib/atproto/types';
 	import { accountSetup, setupDefaults } from '$lib/atproto/setup.svelte';
 	import { errorMessage } from '$lib/utils/errors';
 
