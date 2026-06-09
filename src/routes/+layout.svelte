@@ -51,6 +51,9 @@
 	const aboutWindow = $derived(windowManager.getWindow('about-computer'));
 	const geditWindow = $derived(windowManager.getWindow('gedit'));
 	const documentViewerWindow = $derived(windowManager.getWindow('document-viewer'));
+	const siteTitle = 'Intrepid Ibex ATProto Browser';
+	const siteDescription = 'Browse public AT Protocol repositories like it is 2008, inside an Ubuntu 8.10-inspired GNOME desktop.';
+	const opengraphImage = '/og.png';
 
 	const shortcuts = $derived([
 		{
@@ -214,8 +217,19 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
-	<title>Intrepid Ibex ATProto Browser</title>
-	<meta name="description" content="An AT Protocol browser styled after Ubuntu 8.10 and classic GNOME." />
+	<title>{siteTitle}</title>
+	<meta name="description" content={siteDescription} />
+	<meta property="og:type" content="website" />
+	<meta property="og:title" content={siteTitle} />
+	<meta property="og:description" content={siteDescription} />
+	<meta property="og:image" content={opengraphImage} />
+	<meta property="og:image:type" content="image/png" />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content={siteTitle} />
+	<meta name="twitter:description" content={siteDescription} />
+	<meta name="twitter:image" content={opengraphImage} />
 </svelte:head>
 
 {#if bootStatus !== 'ready'}
