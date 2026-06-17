@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { version } from '$app/environment';
+	import { buildVersion } from '$lib/version';
+	import { REPO_URL } from '$lib/constants';
 	let { onclose }: { onclose: () => void } = $props();
-	const sourceUrl = 'https://tangled.org/desertthunder.dev/ibex';
 </script>
 
 <aside class="sticky-note" aria-label="Design note">
@@ -10,7 +10,7 @@
 	<p>This app is a recreation of the spirit of Ubuntu 8.10</p>
 	<hr />
 	<p class="version-label">
-		<a href={sourceUrl} target="_blank" rel="noreferrer">{version}</a>
+		<a href={REPO_URL} target="_blank" rel="external">{buildVersion.display}</a>
 	</p>
 </aside>
 

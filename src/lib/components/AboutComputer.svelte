@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { accountSetup } from '$lib/atproto/setup.svelte';
+	import { buildCommitUrl, buildVersion } from '$lib/version';
+	import { REPO_URL } from '$lib/constants';
 </script>
 
 <section class="about-computer" aria-labelledby="about-title">
@@ -27,24 +29,33 @@
 				<dd>at://</dd>
 			</div>
 			<div>
+				<dt>Version</dt>
+				<dd>{buildVersion.version}</dd>
+			</div>
+			<div>
+				<dt>Commit</dt>
+				<dd class="mono">
+					<a href={buildCommitUrl} target="_blank" rel="external">{buildVersion.commit}</a>
+				</dd>
+			</div>
+			<div>
 				<dt>Account</dt>
 				<dd>{accountSetup.identity ? `@${accountSetup.identity.handle}` : 'No account configured'}</dd>
 			</div>
 			<div>
 				<dt>DID</dt>
-				<dd>{accountSetup.identity?.did ?? '—'}</dd>
+				<dd class="mono">{accountSetup.identity?.did ?? '—'}</dd>
 			</div>
 			<div>
 				<dt>PDS</dt>
-				<dd>{accountSetup.identity?.pds ?? '—'}</dd>
+				<dd class="mono">{accountSetup.identity?.pds ?? '—'}</dd>
 			</div>
 		</dl>
 	</div>
 
 	<p class="note">
 		View the project on
-		<a href="https://tangled.org/desertthunder.dev/ibex" target="_blank" rel="noreferrer">Tangled</a>. Atmosphere logos
-		courtesy of
+		<a href={REPO_URL} target="_blank" rel="external">Tangled</a>. Atmosphere logos courtesy of
 		<a href="https://tangled.org/cozylittle.house/atmologos" target="_blank" rel="noreferrer">atmologos</a>.
 	</p>
 </section>
@@ -126,8 +137,14 @@
 		font-size: var(--text-1);
 	}
 
-	dl div:nth-last-child(-n + 2) dd {
+	.mono {
 		font-family: var(--font-mono);
+	}
+
+	dd a {
+		color: var(--blue-700);
+		font-weight: 700;
+		text-decoration: underline;
 	}
 
 	.note {

@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import { mdsvex } from 'mdsvex';
 
 const packageJson = JSON.parse(fs.readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
-const buildVersion = buildVersionLabel(packageJson.version);
+const buildVersion = buildVersionDetails(packageJson.version);
 
 function getVersion(v) {
 	const verify = gitOutput(['rev-parse', '--verify', v]);
@@ -12,17 +12,14 @@ function getVersion(v) {
 	return gitOutput(['describe', '--tags', '--abbrev=0', '--match', 'v[0-9]*']);
 }
 
-function buildVersionLabel(version) {
+function buildVersionDetails(version) {
 	const versionTag = `v${version}`;
-	const tag = getVersion(versionTag);
+	const tag = getVersion(versionTag) ?? versionTag;
 	const count = gitOutput(tag ? ['rev-list', '--count', `${tag}..HEAD`] : ['rev-list', '--count', 'HEAD']) ?? '0';
-
-	if (count === '0') {
-		return `v${version}`;
-	}
-
-	const commit = gitOutput(['rev-parse', '--short', 'HEAD']) ?? 'unknown';
-	return `v${version}-${count}+g${commit}`;
+	const commit = gitOutput(['rev-parse', 'HEAD']) ?? 'unknown';
+	const shortCommit = gitOutput(['rev-parse', '--short', 'HEAD']) ?? 'unknown';
+	const display = count === '0' ? versionTag : `${versionTag}-${count}+g${shortCommit}`;
+	return { display, commit, version: tag };
 }
 
 function gitOutput(args) {
@@ -38,7 +35,7 @@ const config = {
 	extensions: ['.svelte', '.svx', '.md'],
 	preprocess: [mdsvex({ extensions: ['.svx', '.md'] })],
 	compilerOptions: { runes: ({ filename }) => (filename.split(/[/\\]/).includes('node_modules') ? undefined : true) },
-	kit: { adapter: adapter({ fallback: 'index.html' }), version: { name: buildVersion } }
+	kit: { adapter: adapter({ fallback: 'index.html' }), version: { name: JSON.stringify(buildVersion) } }
 };
 
 export default config;

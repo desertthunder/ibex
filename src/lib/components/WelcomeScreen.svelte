@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import AboutComputer from '$lib/components/AboutComputer.svelte';
+	import { REPO_URL } from '$lib/constants';
 
 	const quickLinks = [
 		{
@@ -23,7 +24,7 @@
 			label: 'Project source',
 			description: 'Visit the Tangled repo in a new tab.',
 			icon: '/icons/humanity/apps/web-browser.svg',
-			href: 'https://tangled.org/desertthunder.dev/ibex',
+			href: REPO_URL,
 			external: true
 		}
 	] as const;
