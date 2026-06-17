@@ -46,6 +46,8 @@ export type RecordRouteParams = { did: string; collection: string; rkey: string 
 
 export type CollectionRouteParams = Pick<RecordRouteParams, 'did' | 'collection'>;
 
+export type CollectionIconMatch = { prefix: string; label: string; icon: string };
+
 export type UnknownRecord = { uri: string; cid: string; value: unknown };
 
 export function isRecordValue(value: unknown): value is Record<string, unknown> {
