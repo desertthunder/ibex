@@ -28,7 +28,7 @@ no authentication or server.
 
 Every new surface should feel like a GNOME 2 app that happens to speak `at://`.
 
-- **Nautilus**
+- [ ] **Nautilus**
   - Preserve the first-run public handle setup flow for browsing a repo.
   - Add handle typeahead to setup using `app.bsky.actor.searchActorsTypeahead`.
   - Browse public repo collections.
@@ -42,53 +42,50 @@ Every new surface should feel like a GNOME 2 app that happens to speak `at://`.
     selection.
   - Add collection schema tabs and links into System Monitor for the selected repo or
     collection.
-- **gedit**
+- [ ] **gedit**
   - Read-only JSON viewer for records.
   - Preserve copy, wrapping, syntax highlighting, and native GTK-style window behavior.
   - Add record tabs for JSON, schema, backlinks, and info.
   - Show AT URI, CID, raw PDS link, external app links, and read-only verification status.
-- **Eye of GNOME (eog)**
+- [ ] **Eye of GNOME (eog)**
   - List public repo blob CIDs via `com.atproto.sync.listBlobs`.
   - Open from Nautilus when a record contains embedded images or media blobs.
   - Preview image/video blobs, with `app.bsky.feed.post` embedded images as the first
     target.
   - Link each blob back to its repo and raw PDS URL when possible.
-- **Network Map**
+- [ ] **Network Map**
   - Visualize an account at the center with app namespaces around it.
   - Show app count, record-type count, PDS hosting status, and app/domain validation.
   - Let users hide unresolved apps and jump from an app namespace into Nautilus.
-- **System Monitor**
+- [ ] **System Monitor**
   - Icon: `/icons/humanity/apps/utilities-system-monitor.svg`.
   - Read-only live ATProto monitor for Jetstream, Firehose, and Spacedust-style backlink
     streams.
   - Filter by DID, collection, cursor, and stream instance where supported.
   - Show event rate, total events, top collections/sources, expandable JSON, and copy.
-- **Identity Inspector**
+- [ ] **Identity Inspector**
   - Icon: `/icons/humanity/apps/identity-inspector.svg`.
   - Show DID document, aliases, services, verification methods, and rotation keys.
   - Validate handles through DNS TXT and `.well-known` when possible.
   - Link out to PDS endpoints and copy identity fields.
-- **Log Viewer**
+- [ ] **Log Viewer**
   - Show PLC audit history for `did:plc` identities.
   - Present alias, service, verification method, and rotation-key diffs.
   - Include event filters, validation status, and hash links to individual log entries.
-- **Archive Manager**
+- [ ] **Archive Manager**
   - Icon: `/icons/humanity/apps/archive-manager.svg`.
   - Open local CAR files without requiring a live PDS connection.
   - Browse archive collections and records in the same read-only style as Nautilus/gedit.
   - Export archive contents to a ZIP of JSON files.
-- **Label Browser**
+- [ ] **Label Browser**
   - Query public labeler services with URI patterns.
   - Show label value, target, CID, negation, created/expiry timestamps, and pagination.
   - Add client-side label filtering with wildcard include and `-exclude` support.
-- **Network Servers**
+- [ ] **Network Servers**
   - Inspect public PDS host info, version, available domains, and repo list.
   - Link repos into Nautilus and open server firehose views in System Monitor.
-- **About This Computer**
+- [ ] **About This Computer**
   - Show OS/theme info and current public repo identity metadata when available.
-- **Desktop shell**
-  - Preserve brown panels, tan chrome, Humanity icons, small dense spacing, task buttons,
-    tray affordances, and movable/resizable windows.
 
 ## Priority Order
 
