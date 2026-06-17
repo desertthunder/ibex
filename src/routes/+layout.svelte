@@ -9,6 +9,7 @@
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import favicon from '$lib/assets/favicon.svg';
 	import { desktopSession } from '$lib/desktop-session.svelte';
+	import { startupSound } from '$lib/sounds.svelte';
 	import { errorMessage } from '$lib/utils/errors';
 	import { windowManager } from '$lib/window-manager.svelte';
 	import AboutComputer from '$lib/components/AboutComputer.svelte';
@@ -165,6 +166,7 @@
 			accountSetup.load();
 			setMainWindowTitle();
 			bootStatus = 'ready';
+			void startupSound.playOnStartup();
 		} catch (error) {
 			bootError = errorMessage(error, 'Could not start the local cache.');
 			bootStatus = 'error';
