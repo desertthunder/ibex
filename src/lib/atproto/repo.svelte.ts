@@ -63,6 +63,7 @@ class RepoBrowserState {
 
 	async selectCollection(identity: AccountIdentity, collectionName: string) {
 		this.selectedCollection = collectionName;
+		this.selectedRecord = null;
 		this.searchQuery = '';
 		this.isLoadingRecords = true;
 		this.canLoadMoreRecords = false;

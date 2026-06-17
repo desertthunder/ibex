@@ -16,7 +16,7 @@ records, then open any record in gedit for a formatted JSON view.
 Record windows use stable DID-based URLs:
 
 ```txt
-/records/:did/:collection/:rkey
+/repos/:did/collections/:collection/:rkey
 ```
 
 Opening one of those links boots the desktop, selects the collection in Nautilus, and

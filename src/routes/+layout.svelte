@@ -30,7 +30,7 @@
 	let bootStep = $state('Loading database');
 	let bootError = $state<string | null>(null);
 	let cacheDisabled = $state(false);
-	let handledRecordRoute = $state<string | null>(null);
+	let handledRepoRoute = $state<string | null>(null);
 
 	const routeRequiresSetup = $derived(page.route.id === '/browse' && !accountSetup.isConfigured);
 	const routeUsesNativeWindow = $derived(page.route.id === '/' || page.route.id?.startsWith('/docs'));
@@ -41,17 +41,18 @@
 		if (page.route.id?.startsWith('/docs')) return 'Document Viewer';
 		return 'AT Protocol Collections - Intrepid Ibex';
 	});
+
 	const windowIcon = $derived.by(() => {
 		if (routeRequiresSetup) return '/icons/humanity/places/user-home.svg';
 		if (page.route.id === '/') return '/icons/humanity/devices/computer.svg';
 		if (page.route.id?.startsWith('/docs')) return '/icons/humanity/mimes/gnome-mime-application-pdf.svg';
 		return '/icons/humanity/apps/internet-feed-reader.svg';
 	});
+
 	const mainWindow = $derived(windowManager.getWindow('main'));
 	const aboutWindow = $derived(windowManager.getWindow('about-computer'));
 	const geditWindow = $derived(windowManager.getWindow('gedit'));
 	const documentViewerWindow = $derived(windowManager.getWindow('document-viewer'));
-
 	const shortcuts = $derived([
 		{
 			label: 'ibex Home',
@@ -65,7 +66,7 @@
 		{
 			label: 'Collections',
 			icon: '/icons/humanity/places/folder.svg',
-			selected: page.route.id === '/browse' || page.route.id?.startsWith('/records'),
+			selected: page.route.id === '/browse' || page.route.id?.startsWith('/repos'),
 			onactivate: () => {
 				windowManager.restore('main');
 				void goto(resolve('/browse'));
@@ -111,14 +112,14 @@
 	});
 
 	$effect(() => {
-		const route = recordRouteFromParams();
+		const route = repoRouteFromParams();
 		if (bootStatus !== 'ready' || !route) return;
 
-		const routeKey = `${route.did}/${route.collection}/${route.rkey}`;
-		if (handledRecordRoute === routeKey) return;
+		const routeKey = [route.did, route.collection, route.rkey].filter(Boolean).join('/');
+		if (handledRepoRoute === routeKey) return;
 
-		handledRecordRoute = routeKey;
-		void openRecordRoute(route);
+		handledRepoRoute = routeKey;
+		void openRepoRoute(route);
 	});
 
 	onMount(() => {
@@ -176,28 +177,37 @@
 		accountSetup.load();
 	}
 
-	async function openRecordRoute(route: { did: string; collection: string; rkey: string }) {
+	async function openRepoRoute(route: { did: string; collection?: string; rkey?: string }) {
 		try {
 			const { hydratePublicIdentity } = await import('$lib/atproto/identity');
 			const identity = await hydratePublicIdentity(route.did);
 
-			await repoBrowser.openRecordRoute(identity, route.collection, route.rkey);
 			accountSetup.save(identity);
-
 			windowManager.restore('main');
-			if (repoBrowser.selectedRecord) {
-				windowManager.open('gedit');
+
+			if (route.collection && route.rkey) {
+				await repoBrowser.openRecordRoute(identity, route.collection, route.rkey);
+				if (repoBrowser.selectedRecord) {
+					windowManager.open('gedit');
+				}
+				return;
+			}
+
+			await repoBrowser.load(identity);
+
+			if (route.collection) {
+				await repoBrowser.selectCollection(identity, route.collection);
 			}
 		} catch (unknownError) {
-			repoBrowser.error = errorMessage(unknownError, 'Could not open that record route.');
+			repoBrowser.error = errorMessage(unknownError, 'Could not open that repository route.');
 		}
 	}
 
-	function recordRouteFromParams() {
-		if (page.route.id !== '/records/[did]/[collection]/[rkey]') return null;
+	function repoRouteFromParams() {
+		if (!page.route.id?.startsWith('/repos/[did]')) return null;
 
 		const { did, collection, rkey } = page.params;
-		if (!did || !collection || !rkey) return null;
+		if (!did) return null;
 
 		return { did, collection, rkey };
 	}

@@ -84,12 +84,12 @@
 			<ol>
 				<li>Choose a public ATProto repo by handle.</li>
 				<li>Open Nautilus to browse collections and records.</li>
-				<li>Open records in gedit, then share stable DID-based URLs.</li>
+				<li>Open records in gedit to view or share them.</li>
 			</ol>
-			<p>
-				Direct links look like
-				<code>/records/:did/:collection/:rkey</code> and reopen the desktop around that record.
-			</p>
+			<p>You can direct link a record with the following structure:</p>
+			<pre>
+				<code>/repos/:did/collections/:collection/:rkey</code>
+			</pre>
 		</section>
 	</div>
 
