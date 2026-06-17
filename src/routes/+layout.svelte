@@ -1,5 +1,3 @@
-<!-- FIXME: this is becoming a "god" component, not an orchestrator
-            like it should -->
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { dev } from '$app/environment';
@@ -238,6 +236,12 @@
 		windowManager.close('eog');
 	}
 
+	function closeMainWindow() {
+		if (page.route.id === '/browse' || page.route.id?.startsWith('/repos')) {
+			void goto(resolve('/'), { keepFocus: true, noScroll: true });
+		}
+	}
+
 	function navigate(path: string) {
 		void navigateTo(resolve(path as RepoPathname), { keepFocus: true, noScroll: true });
 	}
@@ -291,7 +295,8 @@
 							maximized={mainWindow.isMaximized}
 							onfocus={() => windowManager.focus('main')}
 							onminimize={() => windowManager.minimize('main')}
-							onmaximize={() => windowManager.toggleMaximize('main')}>
+							onmaximize={() => windowManager.toggleMaximize('main')}
+							onclose={closeMainWindow}>
 							{#if routeRequiresSetup}
 								<SetupDialog />
 							{:else}
