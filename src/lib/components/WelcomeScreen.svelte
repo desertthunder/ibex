@@ -87,9 +87,9 @@
 				<li>Open records in gedit to view or share them.</li>
 			</ol>
 			<p>You can direct link a record with the following structure:</p>
-			<pre>
+			<p>
 				<code>/repos/:did/collections/:collection/:rkey</code>
-			</pre>
+			</p>
 		</section>
 	</div>
 
