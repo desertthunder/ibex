@@ -24,6 +24,7 @@
 	import NativeWindow from '$lib/components/NativeWindow.svelte';
 	import NotImplementedDialog from '$lib/components/NotImplementedDialog.svelte';
 	import SetupDialog from '$lib/components/SetupDialog.svelte';
+	import StickyNote from '$lib/components/StickyNote.svelte';
 	import '$lib/styles/style.css';
 
 	let { children } = $props();
@@ -112,7 +113,7 @@
 		{
 			label: 'Trash',
 			icon: '/icons/humanity/places/user-trash.svg',
-			onactivate: () => window.open('https://tangled.org/desertthunder.dev/ibex', '_blank', 'noopener,noreferrer')
+			onactivate: () => window.open('https://github.com/desertthunder.dev/ibex', '_blank', 'noopener,noreferrer')
 		}
 	]);
 
@@ -378,11 +379,7 @@
 			{/if}
 
 			{#if showStickyNote}
-				<aside class="sticky-note" aria-label="Design note">
-					<button type="button" aria-label="Close note" onclick={() => (showStickyNote = false)}>×</button>
-					<h2>Intrepid Ibex</h2>
-					<p>This app is a recreation of the spirit of Ubuntu 8.10</p>
-				</aside>
+				<StickyNote onclose={() => (showStickyNote = false)} />
 			{/if}
 		</main>
 
@@ -492,43 +489,6 @@
 		height: 100%;
 	}
 
-	.sticky-note {
-		position: relative;
-		align-self: end;
-		width: min(18rem, 100%);
-		margin-bottom: var(--space-8);
-		padding: var(--space-4);
-		transform: rotate(1.2deg);
-		color: #3a250e;
-		background: linear-gradient(135deg, #fff1a9, #e9bf51);
-		border: 1px solid #946b19;
-		border-radius: var(--radius-2);
-		box-shadow:
-			0 12px 24px rgb(0 0 0 / 0.25),
-			0 1px 0 rgb(255 255 255 / 0.72) inset;
-	}
-
-	.sticky-note button {
-		position: absolute;
-		top: var(--space-1);
-		right: var(--space-1);
-		width: 1.25rem;
-		height: 1.25rem;
-		color: #6b4a12;
-		font-weight: 700;
-		cursor: default;
-	}
-
-	.sticky-note h2 {
-		font-size: var(--text-4);
-		line-height: var(--leading-tight);
-	}
-
-	.sticky-note p {
-		margin-top: var(--space-2);
-		font-size: var(--text-2);
-	}
-
 	@media (max-width: 1000px) {
 		.desktop-stage {
 			grid-template-columns: 6.5rem minmax(0, 1fr);
@@ -540,10 +500,6 @@
 		.identity-inspector-window {
 			left: auto;
 			right: var(--space-3);
-		}
-
-		.sticky-note {
-			display: none;
 		}
 	}
 

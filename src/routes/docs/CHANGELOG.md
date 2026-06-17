@@ -1,14 +1,20 @@
 # Changelog
 
-## 1.1.0
+## 1.1.0 - 2026-06-16
 
 ### Minor Changes
 
-- added an identity inspector to inspect atproto identity
+- Added Changesets release tracking and contributor documentation.
+- Added an Identity Inspector for ATProto identity material, handle validation, services,
+  verification methods, and PLC rotation keys.
+- Added canonical `/repos/:did/identity` routing and desktop/Nautilus launchers for the
+  Identity Inspector.
+- Added a build version label in the sticky note linked to the project source.
+- Marked the current app release as `v1.1.0`.
 
-## [Unreleased]
+---
 
-Target release: `v1.0.0`.
+## 1.0.0
 
 ### 2026-06-09
 
