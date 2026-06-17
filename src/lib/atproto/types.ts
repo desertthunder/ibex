@@ -17,18 +17,9 @@ export type DidDocument = {
 	service?: DidService[];
 };
 
-export type DidService = {
-	id?: string;
-	type?: string;
-	serviceEndpoint?: string | string[] | Record<string, unknown>;
-};
+export type DidService = { id?: string; type?: string; serviceEndpoint?: string | string[] | Record<string, unknown> };
 
-export type DidVerificationMethod = {
-	id?: string;
-	type?: string;
-	controller?: string;
-	publicKeyMultibase?: string;
-};
+export type DidVerificationMethod = { id?: string; type?: string; controller?: string; publicKeyMultibase?: string };
 
 export type CollectionSummary = { name: string; icon: string; appLabel: string | null; loadedCount: number | null };
 
@@ -42,9 +33,18 @@ export type RepoRecordSummary = {
 	collection: string;
 	rkey: string;
 	json: string;
+	value: unknown;
 	icon: string;
 	appLabel: string | null;
 };
+
+export type BlobReference = { cid: string; sourceUri: string | null };
+
+export type RepoBlobSummary = { cid: string; rawUrl: string; sourceUri: string | null };
+
+export type RecordRouteParams = { did: string; collection: string; rkey: string };
+
+export type CollectionRouteParams = Pick<RecordRouteParams, 'did' | 'collection'>;
 
 export type UnknownRecord = { uri: string; cid: string; value: unknown };
 

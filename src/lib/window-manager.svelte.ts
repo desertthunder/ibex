@@ -1,6 +1,6 @@
 /* Split up this file into windows/types.ts & windows/manager.svelte.ts */
 
-export type WindowId = 'main' | 'about-computer' | 'gedit' | 'document-viewer' | 'identity-inspector';
+export type WindowId = 'main' | 'about-computer' | 'gedit' | 'document-viewer' | 'identity-inspector' | 'eog';
 
 export type ManagedWindow = {
 	id: WindowId;
@@ -58,10 +58,19 @@ class WindowManager {
 			isMinimized: false,
 			isMaximized: false,
 			zIndex: 5
+		},
+		{
+			id: 'eog',
+			title: 'Eye of GNOME',
+			icon: '/icons/humanity/apps/eog.svg',
+			isOpen: false,
+			isMinimized: false,
+			isMaximized: false,
+			zIndex: 6
 		}
 	]);
 
-	private nextZIndex = 5;
+	private nextZIndex = 6;
 
 	get openWindows() {
 		return this.windows.filter((window) => window.isOpen);

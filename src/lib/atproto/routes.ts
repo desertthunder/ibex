@@ -1,13 +1,13 @@
-export type RecordRouteParams = { did: string; collection: string; rkey: string };
+import type { CollectionRouteParams, RecordRouteParams } from './types';
 
-export type CollectionRouteParams = Pick<RecordRouteParams, 'did' | 'collection'>;
+export const repoPath = (did: string) => `/repos/${did}`;
 
-export function repoPath(did: string) {
-	return `/repos/${did}`;
-}
+export const identityPath = (did: string) => `${repoPath(did)}/identity`;
 
-export function identityPath(did: string) {
-	return `${repoPath(did)}/identity`;
+export const blobsPath = (did: string) => `${repoPath(did)}/blobs`;
+
+export function blobPath(did: string, cid: string) {
+	return `${blobsPath(did)}/${encodeURIComponent(cid)}`;
 }
 
 export function collectionPath({ did, collection }: CollectionRouteParams) {

@@ -8,8 +8,6 @@ import { listRecordPages, type RecordPage } from './pagination';
 import { isRecordValue } from './types';
 import type { AccountIdentity, CollectionSummary, RepoRecordSummary, UnknownRecord } from './types';
 
-export type { CollectionSummary, RepoRecordSummary } from './types';
-
 class RepoBrowserState {
 	collections = $state<CollectionSummary[]>([]);
 	selectedCollection = $state<string | null>(null);
@@ -244,8 +242,6 @@ class RepoBrowserState {
 	}
 }
 
-export const repoBrowser = new RepoBrowserState();
-
 function createRepoClient(identity: AccountIdentity) {
 	return new Client({ handler: simpleFetchHandler({ service: identity.pds ?? 'https://public.api.bsky.app' }) });
 }
@@ -263,16 +259,6 @@ async function getRepoRecord(identity: AccountIdentity, collectionName: string, 
 
 function preferredCollection(collections: string[]) {
 	return collections.includes('app.bsky.feed.post') ? 'app.bsky.feed.post' : (collections[0] ?? null);
-}
-
-export function iconForCollection(name: string) {
-	const appIcon = collectionIconMatch(name)?.icon;
-	if (appIcon) return appIcon;
-	if (name.includes('profile') || name.includes('actor')) return '/icons/humanity/places/user-home.svg';
-	if (name.includes('chat') || name.includes('convo')) return '/icons/humanity/apps/evolution-mail.svg';
-	if (name.includes('feed') || name.includes('post')) return '/icons/humanity/apps/internet-feed-reader.svg';
-	if (name.includes('graph') || name.includes('follow')) return '/icons/humanity/places/folder.svg';
-	return '/icons/humanity/mimes/text-x-generic.svg';
 }
 
 function collectionSummaryForName(name: string, loadedCount: number | null): CollectionSummary {
@@ -297,6 +283,7 @@ function summarizeRecord(record: UnknownRecord, handle: string): RepoRecordSumma
 		collection: collectionFromUri(record.uri),
 		rkey: recordKeyFromUri(record.uri),
 		json: JSON.stringify(record.value, null, 2),
+		value: record.value,
 		icon: iconForCollection(collectionFromUri(record.uri)),
 		appLabel: appLabelForCollection(collectionFromUri(record.uri))
 	};
@@ -307,8 +294,8 @@ function summarizeCachedRecord(record: CachedRecord, handle: string): RepoRecord
 }
 
 async function cacheLiveRecords(
-	identity: AccountIdentity,
-	collectionName: string,
+	id: AccountIdentity,
+	name: string,
 	records: readonly UnknownRecord[],
 	cursor: string | null
 ) {
@@ -317,37 +304,33 @@ async function cacheLiveRecords(
 		const db = await getDatabase();
 		await cacheFetchedRecords(
 			db,
-			records.map((record) => toCachedRecordInput(identity, collectionName, record))
+			records.map((record) => toCachedRecordInput(id, name, record))
 		);
 		await updateCollectionSyncState(db, {
-			accountDid: identity.did,
-			repoDid: identity.did,
-			collection: collectionName,
+			accountDid: id.did,
+			repoDid: id.did,
+			collection: name,
 			cursor,
 			lastSyncedAt: new Date().toISOString(),
 			lastError: null
 		});
-	} catch (cacheError) {
-		console.warn('Could not write records to local cache.', cacheError);
+	} catch (err) {
+		console.warn('Could not write records to local cache.', err);
 	}
 }
 
-function toCachedRecordInput(
-	identity: AccountIdentity,
-	collectionName: string,
-	record: UnknownRecord
-): CachedRecordInput {
+function toCachedRecordInput(id: AccountIdentity, name: string, record: UnknownRecord): CachedRecordInput {
 	const value = isRecordValue(record.value) ? record.value : {};
 	const text = stringifyField(value.text) ?? stringifyField(value.name) ?? stringifyField(value.displayName) ?? '';
-	const type = stringifyField(value.$type) ?? collectionName;
+	const type = stringifyField(value.$type) ?? name;
 	const createdAt = stringifyField(value.createdAt);
 	const indexedAt = stringifyField(value.indexedAt);
 	const updatedAt = stringifyField(value.updatedAt);
 
 	return {
-		accountDid: identity.did,
-		repoDid: identity.did,
-		collection: collectionName,
+		accountDid: id.did,
+		repoDid: id.did,
+		collection: name,
 		rkey: recordKeyFromUri(record.uri),
 		uri: record.uri,
 		cid: record.cid,
@@ -388,3 +371,15 @@ function formatRecordTime(value: string | null) {
 		minute: '2-digit'
 	}).format(date);
 }
+
+export function iconForCollection(name: string) {
+	const appIcon = collectionIconMatch(name)?.icon;
+	if (appIcon) return appIcon;
+	if (name.includes('profile') || name.includes('actor')) return '/icons/humanity/places/user-home.svg';
+	if (name.includes('chat') || name.includes('convo')) return '/icons/humanity/apps/evolution-mail.svg';
+	if (name.includes('feed') || name.includes('post')) return '/icons/humanity/apps/internet-feed-reader.svg';
+	if (name.includes('graph') || name.includes('follow')) return '/icons/humanity/places/folder.svg';
+	return '/icons/humanity/mimes/text-x-generic.svg';
+}
+
+export const repoBrowser = new RepoBrowserState();

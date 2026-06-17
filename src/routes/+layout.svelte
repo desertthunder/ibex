@@ -6,6 +6,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { repoBlobs } from '$lib/atproto/blobs.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import favicon from '$lib/assets/favicon.svg';
@@ -17,6 +18,7 @@
 	import BootSplash from '$lib/components/BootSplash.svelte';
 	import DesktopIcon from '$lib/components/DesktopIcon.svelte';
 	import DocumentViewer from '$lib/components/DocumentViewer.svelte';
+	import EyeOfGnome from '$lib/components/EyeOfGnome.svelte';
 	import Gedit from '$lib/components/Gedit.svelte';
 	import GnomePanel from '$lib/components/GnomePanel.svelte';
 	import IdentityInspector from '$lib/components/IdentityInspector.svelte';
@@ -58,6 +60,7 @@
 	const geditWindow = $derived(windowManager.getWindow('gedit'));
 	const documentViewerWindow = $derived(windowManager.getWindow('document-viewer'));
 	const identityInspectorWindow = $derived(windowManager.getWindow('identity-inspector'));
+	const eogWindow = $derived(windowManager.getWindow('eog'));
 	const shortcuts = $derived([
 		{
 			label: 'ibex Home',
@@ -84,6 +87,20 @@
 			onactivate: () => {
 				if (accountSetup.identity) {
 					void goto(resolve(`/repos/${accountSetup.identity.did}/identity`), { keepFocus: true, noScroll: true });
+					return;
+				}
+
+				windowManager.restore('main');
+				void goto(resolve('/browse'));
+			}
+		},
+		{
+			label: 'Image Viewer',
+			icon: '/icons/humanity/apps/eog.svg',
+			selected: eogWindow?.isOpen && !eogWindow.isMinimized,
+			onactivate: () => {
+				if (accountSetup.identity) {
+					void goto(resolve(`/repos/${accountSetup.identity.did}/blobs`), { keepFocus: true, noScroll: true });
 					return;
 				}
 
@@ -128,13 +145,17 @@
 				repoBrowser.selectedRecord.icon
 			);
 		}
+
+		if (repoBlobs.selectedCid) {
+			windowManager.setTitle('eog', `${repoBlobs.selectedCid} - Eye of GNOME`, '/icons/humanity/apps/eog.svg');
+		}
 	});
 
 	$effect(() => {
 		const route = repoRouteFromParams();
 		if (bootStatus !== 'ready' || !route) return;
 
-		const routeKey = [route.did, route.app, route.collection, route.rkey].filter(Boolean).join('/');
+		const routeKey = [route.did, route.app, route.collection, route.rkey, route.cid].filter(Boolean).join('/');
 		if (handledRepoRoute === routeKey) return;
 
 		handledRepoRoute = routeKey;
@@ -196,7 +217,13 @@
 		accountSetup.load();
 	}
 
-	async function openRepoRoute(route: { did: string; app?: string; collection?: string; rkey?: string }) {
+	async function openRepoRoute(route: {
+		did: string;
+		app?: string;
+		collection?: string;
+		rkey?: string;
+		cid?: string;
+	}) {
 		try {
 			const { hydratePublicIdentity } = await import('$lib/atproto/identity');
 			const identity = await hydratePublicIdentity(route.did);
@@ -208,6 +235,17 @@
 				await repoBrowser.load(identity);
 				windowManager.setTitle('identity-inspector', `${identity.handle} - Identity Inspector`);
 				windowManager.open('identity-inspector');
+				return;
+			}
+
+			if (route.app === 'blobs') {
+				await repoBrowser.load(identity);
+				await repoBlobs.load(identity, route.cid);
+				windowManager.setTitle(
+					'eog',
+					route.cid ? `${route.cid} - Eye of GNOME` : `${identity.handle} - Eye of GNOME`
+				);
+				windowManager.open('eog');
 				return;
 			}
 
@@ -235,7 +273,18 @@
 		const { did, collection, rkey } = page.params;
 
 		if (!did) return null;
-		return { did, app: page.route.id === '/repos/[did]/identity' ? 'identity' : undefined, collection, rkey };
+		return {
+			did,
+			app:
+				page.route.id === '/repos/[did]/identity'
+					? 'identity'
+					: page.route.id?.startsWith('/repos/[did]/blobs')
+						? 'blobs'
+						: undefined,
+			collection,
+			rkey,
+			cid: page.params.cid
+		};
 	}
 
 	async function waitForMinimumBootTime(startedAt: number) {
@@ -378,6 +427,25 @@
 				</div>
 			{/if}
 
+			{#if eogWindow?.isOpen && !eogWindow.isMinimized}
+				<div class="eog-window" class:maximized={eogWindow.isMaximized} style:z-index={eogWindow.zIndex}>
+					<AppWindow
+						windowId="eog"
+						title={eogWindow.title}
+						icon="/icons/humanity/apps/eog.svg"
+						address={accountSetup.identity ? `/repos/${accountSetup.identity.did}/blobs` : undefined}
+						showMenubar={false}
+						showToolbar={false}
+						maximized={eogWindow.isMaximized}
+						onfocus={() => windowManager.focus('eog')}
+						onminimize={() => windowManager.minimize('eog')}
+						onmaximize={() => windowManager.toggleMaximize('eog')}
+						onclose={() => windowManager.close('eog')}>
+						<EyeOfGnome />
+					</AppWindow>
+				</div>
+			{/if}
+
 			{#if showStickyNote}
 				<StickyNote onclose={() => (showStickyNote = false)} />
 			{/if}
@@ -435,7 +503,8 @@
 	.about-window.maximized,
 	.document-viewer-window.maximized,
 	.gedit-window.maximized,
-	.identity-inspector-window.maximized {
+	.identity-inspector-window.maximized,
+	.eog-window.maximized {
 		position: fixed;
 		top: 1.75rem;
 		right: 0;
@@ -449,7 +518,8 @@
 	.about-window,
 	.document-viewer-window,
 	.gedit-window,
-	.identity-inspector-window {
+	.identity-inspector-window,
+	.eog-window {
 		position: absolute;
 		z-index: 3;
 	}
@@ -482,10 +552,18 @@
 		height: min(39rem, calc(100vh - 5rem));
 	}
 
+	.eog-window {
+		top: min(5.5rem, 10vh);
+		left: min(18rem, 22vw);
+		width: min(54rem, calc(100vw - 2rem));
+		height: min(38rem, calc(100vh - 5rem));
+	}
+
 	.about-window :global(.app-window),
 	.document-viewer-window :global(.app-window),
 	.gedit-window :global(.app-window),
-	.identity-inspector-window :global(.app-window) {
+	.identity-inspector-window :global(.app-window),
+	.eog-window :global(.app-window) {
 		height: 100%;
 	}
 
@@ -497,7 +575,8 @@
 
 		.about-window,
 		.gedit-window,
-		.identity-inspector-window {
+		.identity-inspector-window,
+		.eog-window {
 			left: auto;
 			right: var(--space-3);
 		}
@@ -519,7 +598,8 @@
 
 		.about-window,
 		.gedit-window,
-		.identity-inspector-window {
+		.identity-inspector-window,
+		.eog-window {
 			top: var(--space-3);
 			right: var(--space-3);
 			left: var(--space-3);
