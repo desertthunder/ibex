@@ -1,5 +1,6 @@
+/** Move to test/routes.test.ts */
 import { describe, expect, it } from 'vitest';
-import { collectionPath, recordPath, repoPath } from './routes';
+import { collectionPath, identityPath, recordPath, repoPath } from './routes';
 
 describe('ATProto route helpers', () => {
 	it('builds canonical repo routes', () => {
@@ -10,6 +11,10 @@ describe('ATProto route helpers', () => {
 		expect(collectionPath({ did: 'did:plc:abc123', collection: 'app.bsky.feed.post' })).toBe(
 			'/repos/did:plc:abc123/collections/app.bsky.feed.post'
 		);
+	});
+
+	it('builds canonical identity inspector routes', () => {
+		expect(identityPath('did:plc:abc123')).toBe('/repos/did:plc:abc123/identity');
 	});
 
 	it('encodes record keys in canonical record routes', () => {

@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
-	import { recordPath } from '$lib/atproto/routes';
+	import { identityPath, recordPath } from '$lib/atproto/routes';
 	import type { CollectionSummary, RepoRecordSummary } from '$lib/atproto/types';
 	import { windowManager } from '$lib/window-manager.svelte';
 	import { SvelteMap } from 'svelte/reactivity';
@@ -57,11 +57,16 @@
 		}
 	}
 
+	function openIdentityInspector() {
+		const identity = accountSetup.identity;
+		if (!identity) return;
+
+		void goto(identityPath(identity.did), { keepFocus: true, noScroll: true });
+	}
+
 	function groupCollections(collections: CollectionSummary[]) {
-		const groups = new SvelteMap<
-			string,
-			{ namespace: string; label: string; icon: string; collections: CollectionSummary[] }
-		>();
+		type M = { namespace: string; label: string; icon: string; collections: CollectionSummary[] };
+		const groups = new SvelteMap<string, M>();
 
 		for (const collection of collections) {
 			const namespace = namespaceForCollection(collection.name);
@@ -153,26 +158,36 @@
 					{/if}
 				</p>
 			</div>
-			<form
-				class="search-box"
-				role="search"
-				onsubmit={(event) => {
-					event.preventDefault();
-					searchRecords();
-				}}>
-				<label for="record-search">Search</label>
-				<div>
-					<input
-						id="record-search"
-						bind:value={searchQuery}
-						placeholder="Search records"
-						disabled={!repoBrowser.selectedCollection || repoBrowser.isLoadingRecords || repoBrowser.isSearching} />
-					<button type="submit" disabled={!searchQuery.trim() || repoBrowser.isSearching}>Search</button>
-					{#if repoBrowser.searchQuery}
-						<button type="button" class="clear-search" onclick={clearSearch}>Clear</button>
-					{/if}
-				</div>
-			</form>
+			<div class="summary-controls">
+				<form
+					class="search-box"
+					role="search"
+					onsubmit={(event) => {
+						event.preventDefault();
+						searchRecords();
+					}}>
+					<label for="record-search">Search</label>
+					<div>
+						<input
+							id="record-search"
+							bind:value={searchQuery}
+							placeholder="Search records"
+							disabled={!repoBrowser.selectedCollection || repoBrowser.isLoadingRecords || repoBrowser.isSearching} />
+						<button type="submit" disabled={!searchQuery.trim() || repoBrowser.isSearching}>Search</button>
+						{#if repoBrowser.searchQuery}
+							<button type="button" class="clear-search" onclick={clearSearch}>Clear</button>
+						{/if}
+					</div>
+				</form>
+				<button
+					class="identity-launcher"
+					type="button"
+					disabled={!accountSetup.identity}
+					onclick={openIdentityInspector}>
+					<img src="/icons/humanity/apps/identity-inspector.svg" alt="" width="22" height="22" />
+					<span>Identity</span>
+				</button>
+			</div>
 		</div>
 
 		<div class="record-list">
@@ -188,9 +203,11 @@
 				<p class="message">{repoBrowser.isSearching ? 'Searching cached records…' : 'Loading records…'}</p>
 			{:else if repoBrowser.records.length === 0}
 				<p class="message">
-					{repoBrowser.searchQuery
-						? 'No cached records matched that search.'
-						: 'No public records found for this collection.'}
+					{#if repoBrowser.searchQuery}
+						No cached records matched that search.
+					{:else}
+						No public records found for this collection.
+					{/if}
 				</p>
 			{:else}
 				{#each repoBrowser.records as record (record.uri)}
@@ -378,6 +395,7 @@
 		border-bottom: 1px solid #b29366;
 	}
 
+	.summary-controls,
 	.search-box {
 		display: grid;
 		gap: var(--space-1);
@@ -410,7 +428,8 @@
 		font-size: var(--text-1);
 	}
 
-	.search-box button {
+	.search-box button,
+	.identity-launcher {
 		padding: 0.35rem 0.55rem;
 		color: #2c180d;
 		background: linear-gradient(#fff8e8, #d3b17d);
@@ -422,8 +441,22 @@
 		font-weight: 700;
 	}
 
+	.identity-launcher {
+		display: inline-flex;
+		align-items: center;
+		justify-self: end;
+		gap: var(--space-1);
+		min-height: 1.9rem;
+		cursor: default;
+	}
+
+	.identity-launcher:active {
+		scale: 0.96;
+	}
+
 	.search-box button:disabled,
-	.search-box input:disabled {
+	.search-box input:disabled,
+	.identity-launcher:disabled {
 		opacity: 0.62;
 	}
 

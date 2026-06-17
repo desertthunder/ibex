@@ -94,7 +94,7 @@ Every new surface should feel like a GNOME 2 app that happens to speak `at://`.
 
 - [x] Add canonical `/repos/:did/...` routing.
 - [ ] Deepen Nautilus and gedit with collection controls plus record JSON/schema/info tabs.
-- [ ] Add Identity Inspector.
+- [x] Add Identity Inspector.
 - [ ] Add System Monitor with Jetstream first.
 - [ ] Add Network Map.
 - [ ] Add Archive Manager.

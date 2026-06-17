@@ -10,7 +10,24 @@ export type AccountIdentity = {
 export type ActorTypeaheadResult = Pick<AccountIdentity, 'handle' | 'did' | 'displayName' | 'avatar'>;
 
 export type DidDocument = {
-	service?: Array<{ id?: string; type?: string; serviceEndpoint?: string | string[] | Record<string, unknown> }>;
+	'@context'?: unknown;
+	id?: string;
+	alsoKnownAs?: string[];
+	verificationMethod?: DidVerificationMethod[];
+	service?: DidService[];
+};
+
+export type DidService = {
+	id?: string;
+	type?: string;
+	serviceEndpoint?: string | string[] | Record<string, unknown>;
+};
+
+export type DidVerificationMethod = {
+	id?: string;
+	type?: string;
+	controller?: string;
+	publicKeyMultibase?: string;
 };
 
 export type CollectionSummary = { name: string; icon: string; appLabel: string | null; loadedCount: number | null };

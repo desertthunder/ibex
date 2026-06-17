@@ -1,3 +1,5 @@
+<!-- FIXME: this is becoming a "god" component, not an orchestrator
+            like it should -->
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { dev } from '$app/environment';
@@ -17,6 +19,7 @@
 	import DocumentViewer from '$lib/components/DocumentViewer.svelte';
 	import Gedit from '$lib/components/Gedit.svelte';
 	import GnomePanel from '$lib/components/GnomePanel.svelte';
+	import IdentityInspector from '$lib/components/IdentityInspector.svelte';
 	import LockScreen from '$lib/components/LockScreen.svelte';
 	import NativeWindow from '$lib/components/NativeWindow.svelte';
 	import NotImplementedDialog from '$lib/components/NotImplementedDialog.svelte';
@@ -53,6 +56,7 @@
 	const aboutWindow = $derived(windowManager.getWindow('about-computer'));
 	const geditWindow = $derived(windowManager.getWindow('gedit'));
 	const documentViewerWindow = $derived(windowManager.getWindow('document-viewer'));
+	const identityInspectorWindow = $derived(windowManager.getWindow('identity-inspector'));
 	const shortcuts = $derived([
 		{
 			label: 'ibex Home',
@@ -68,6 +72,20 @@
 			icon: '/icons/humanity/places/folder.svg',
 			selected: page.route.id === '/browse' || page.route.id?.startsWith('/repos'),
 			onactivate: () => {
+				windowManager.restore('main');
+				void goto(resolve('/browse'));
+			}
+		},
+		{
+			label: 'Identity Inspector',
+			icon: '/icons/humanity/apps/identity-inspector.svg',
+			selected: identityInspectorWindow?.isOpen && !identityInspectorWindow.isMinimized,
+			onactivate: () => {
+				if (accountSetup.identity) {
+					void goto(resolve(`/repos/${accountSetup.identity.did}/identity`), { keepFocus: true, noScroll: true });
+					return;
+				}
+
 				windowManager.restore('main');
 				void goto(resolve('/browse'));
 			}
@@ -115,7 +133,7 @@
 		const route = repoRouteFromParams();
 		if (bootStatus !== 'ready' || !route) return;
 
-		const routeKey = [route.did, route.collection, route.rkey].filter(Boolean).join('/');
+		const routeKey = [route.did, route.app, route.collection, route.rkey].filter(Boolean).join('/');
 		if (handledRepoRoute === routeKey) return;
 
 		handledRepoRoute = routeKey;
@@ -177,13 +195,20 @@
 		accountSetup.load();
 	}
 
-	async function openRepoRoute(route: { did: string; collection?: string; rkey?: string }) {
+	async function openRepoRoute(route: { did: string; app?: string; collection?: string; rkey?: string }) {
 		try {
 			const { hydratePublicIdentity } = await import('$lib/atproto/identity');
 			const identity = await hydratePublicIdentity(route.did);
 
 			accountSetup.save(identity);
 			windowManager.restore('main');
+
+			if (route.app === 'identity') {
+				await repoBrowser.load(identity);
+				windowManager.setTitle('identity-inspector', `${identity.handle} - Identity Inspector`);
+				windowManager.open('identity-inspector');
+				return;
+			}
 
 			if (route.collection && route.rkey) {
 				await repoBrowser.openRecordRoute(identity, route.collection, route.rkey);
@@ -207,9 +232,9 @@
 		if (!page.route.id?.startsWith('/repos/[did]')) return null;
 
 		const { did, collection, rkey } = page.params;
-		if (!did) return null;
 
-		return { did, collection, rkey };
+		if (!did) return null;
+		return { did, app: page.route.id === '/repos/[did]/identity' ? 'identity' : undefined, collection, rkey };
 	}
 
 	async function waitForMinimumBootTime(startedAt: number) {
@@ -332,6 +357,26 @@
 				</div>
 			{/if}
 
+			{#if identityInspectorWindow?.isOpen && !identityInspectorWindow.isMinimized}
+				<div
+					class="identity-inspector-window"
+					class:maximized={identityInspectorWindow.isMaximized}
+					style:z-index={identityInspectorWindow.zIndex}>
+					<AppWindow
+						windowId="identity-inspector"
+						title={identityInspectorWindow.title}
+						icon="/icons/humanity/apps/identity-inspector.svg"
+						address={accountSetup.identity ? `/repos/${accountSetup.identity.did}/identity` : undefined}
+						maximized={identityInspectorWindow.isMaximized}
+						onfocus={() => windowManager.focus('identity-inspector')}
+						onminimize={() => windowManager.minimize('identity-inspector')}
+						onmaximize={() => windowManager.toggleMaximize('identity-inspector')}
+						onclose={() => windowManager.close('identity-inspector')}>
+						<IdentityInspector />
+					</AppWindow>
+				</div>
+			{/if}
+
 			{#if showStickyNote}
 				<aside class="sticky-note" aria-label="Design note">
 					<button type="button" aria-label="Close note" onclick={() => (showStickyNote = false)}>×</button>
@@ -392,7 +437,8 @@
 	.primary-window.maximized,
 	.about-window.maximized,
 	.document-viewer-window.maximized,
-	.gedit-window.maximized {
+	.gedit-window.maximized,
+	.identity-inspector-window.maximized {
 		position: fixed;
 		top: 1.75rem;
 		right: 0;
@@ -405,7 +451,8 @@
 
 	.about-window,
 	.document-viewer-window,
-	.gedit-window {
+	.gedit-window,
+	.identity-inspector-window {
 		position: absolute;
 		z-index: 3;
 	}
@@ -431,9 +478,17 @@
 		height: min(34rem, calc(100vh - 5rem));
 	}
 
+	.identity-inspector-window {
+		top: min(4.75rem, 9vh);
+		left: min(13rem, 16vw);
+		width: min(56rem, calc(100vw - 2rem));
+		height: min(39rem, calc(100vh - 5rem));
+	}
+
 	.about-window :global(.app-window),
 	.document-viewer-window :global(.app-window),
-	.gedit-window :global(.app-window) {
+	.gedit-window :global(.app-window),
+	.identity-inspector-window :global(.app-window) {
 		height: 100%;
 	}
 
@@ -481,7 +536,8 @@
 		}
 
 		.about-window,
-		.gedit-window {
+		.gedit-window,
+		.identity-inspector-window {
 			left: auto;
 			right: var(--space-3);
 		}
@@ -506,7 +562,8 @@
 		}
 
 		.about-window,
-		.gedit-window {
+		.gedit-window,
+		.identity-inspector-window {
 			top: var(--space-3);
 			right: var(--space-3);
 			left: var(--space-3);

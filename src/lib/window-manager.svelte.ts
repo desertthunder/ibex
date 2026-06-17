@@ -1,4 +1,6 @@
-export type WindowId = 'main' | 'about-computer' | 'gedit' | 'document-viewer';
+/* Split up this file into windows/types.ts & windows/manager.svelte.ts */
+
+export type WindowId = 'main' | 'about-computer' | 'gedit' | 'document-viewer' | 'identity-inspector';
 
 export type ManagedWindow = {
 	id: WindowId;
@@ -47,10 +49,19 @@ class WindowManager {
 			isMinimized: false,
 			isMaximized: false,
 			zIndex: 4
+		},
+		{
+			id: 'identity-inspector',
+			title: 'Identity Inspector',
+			icon: '/icons/humanity/apps/identity-inspector.svg',
+			isOpen: false,
+			isMinimized: false,
+			isMaximized: false,
+			zIndex: 5
 		}
 	]);
 
-	private nextZIndex = 4;
+	private nextZIndex = 5;
 
 	get openWindows() {
 		return this.windows.filter((window) => window.isOpen);

@@ -3,9 +3,8 @@ import type { ActorIdentifier } from '@atcute/lexicons/syntax';
 import type { Handle } from '@atcute/lexicons/syntax';
 import type {} from '@atcute/atproto';
 import type {} from '@atcute/bluesky';
-import type { AccountIdentity, ActorTypeaheadResult, DidDocument } from './types';
-
-export type { AccountIdentity, ActorTypeaheadResult } from './types';
+import { findPdsEndpoint, resolveDidDocument } from './identity-inspector';
+import type { AccountIdentity, ActorTypeaheadResult } from './types';
 
 export const defaultIdentity = { handle: 'desertthunder.dev', did: 'did:plc:xg2vq45muivyy3xwatcehspu' };
 
@@ -76,30 +75,6 @@ async function getPublicProfile(actor: string) {
 }
 
 async function resolvePds(did: string): Promise<string | null> {
-	const response = await fetch(resolveDidDocumentUrl(did));
-
-	if (!response.ok) {
-		return null;
-	}
-
-	const document = (await response.json()) as DidDocument;
-	const pdsService = document.service?.find(
-		(service) => service.id === '#atproto_pds' || service.type === 'AtprotoPersonalDataServer'
-	);
-	const endpoint = pdsService?.serviceEndpoint;
-
-	return typeof endpoint === 'string' ? endpoint : null;
-}
-
-function resolveDidDocumentUrl(did: string) {
-	if (did.startsWith('did:plc:')) {
-		return `https://plc.directory/${encodeURIComponent(did)}`;
-	}
-
-	if (did.startsWith('did:web:')) {
-		const domain = did.slice('did:web:'.length).replaceAll(':', '/');
-		return `https://${domain}/.well-known/did.json`;
-	}
-
-	throw new Error(`Unsupported DID method: ${did}`);
+	const document = await resolveDidDocument(did);
+	return findPdsEndpoint(document.service ?? []);
 }

@@ -6,6 +6,10 @@ export function repoPath(did: string) {
 	return `/repos/${did}`;
 }
 
+export function identityPath(did: string) {
+	return `${repoPath(did)}/identity`;
+}
+
 export function collectionPath({ did, collection }: CollectionRouteParams) {
 	return `${repoPath(did)}/collections/${collection}`;
 }
