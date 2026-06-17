@@ -81,7 +81,7 @@ class RepoBlobState {
 
 	openMedia(identity: AccountIdentity, media: BlobReference) {
 		this.loadedDid = identity.did;
-		const summary = blobSummary(identity, media.cid, media.sourceUri);
+		const summary = blobSummary(identity, media.cid, media.sourceUri, media.sourceIcon);
 
 		if (!this.blobs.some((blob) => blob.cid === media.cid)) {
 			this.blobs = [summary, ...this.blobs];
@@ -138,8 +138,13 @@ async function listBlobPage(identity: AccountIdentity, cursor?: string | null) {
 	);
 }
 
-function blobSummary(identity: AccountIdentity, cid: string, sourceUri: string | null): RepoBlobSummary {
-	return { cid, sourceUri, rawUrl: rawBlobUrl(identity, cid) };
+function blobSummary(
+	identity: AccountIdentity,
+	cid: string,
+	sourceUri: string | null,
+	sourceIcon?: string
+): RepoBlobSummary {
+	return { cid, sourceUri, sourceIcon, rawUrl: rawBlobUrl(identity, cid) };
 }
 
 function rawBlobUrl(identity: AccountIdentity, cid: string) {

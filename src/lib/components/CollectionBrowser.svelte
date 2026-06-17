@@ -48,7 +48,7 @@
 
 		if (identity && blob) {
 			repoBrowser.selectedRecord = record;
-			repoBlobs.openMedia(identity, blob);
+			repoBlobs.openMedia(identity, { ...blob, sourceIcon: record.icon });
 			windowManager.setTitle('eog', `${blob.cid} - Eye of GNOME`, '/icons/humanity/apps/eog.svg');
 			windowManager.open('eog');
 			void goto(blobPath(identity.did, blob.cid), { keepFocus: true, noScroll: true });

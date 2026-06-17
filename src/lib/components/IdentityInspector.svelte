@@ -16,7 +16,12 @@
 
 		return [
 			{ id: 'overview', label: 'Identity', icon: '/icons/humanity/status/network-wireless-encrypted.svg', count: 1 },
-			{ id: 'aliases', label: 'Handle aliases', icon: '/icons/humanity/places/user-home.svg', count: inspection.aliases.length },
+			{
+				id: 'aliases',
+				label: 'Handle aliases',
+				icon: '/icons/humanity/places/user-home.svg',
+				count: inspection.aliases.length
+			},
 			{
 				id: 'services',
 				label: 'Services',
@@ -136,7 +141,11 @@
 			</div>
 		{:else}
 			<header class="identity-heading">
-				<img src={identity?.avatar ?? '/icons/humanity/status/network-wireless-encrypted.svg'} alt="" width="48" height="48" />
+				<img
+					src={identity?.avatar ?? '/icons/humanity/status/network-wireless-encrypted.svg'}
+					alt=""
+					width="48"
+					height="48" />
 				<div>
 					<p>Default public keyring</p>
 					<h2>{inspection.handle ? `@${inspection.handle}` : inspection.did}</h2>
@@ -167,7 +176,10 @@
 					{#if inspection.handleValidation}
 						<div class="validation-list" aria-label="Handle validation">
 							{#each [inspection.handleValidation.resolveHandle, inspection.handleValidation.wellKnown, inspection.handleValidation.dnsTxt] as check (check.label)}
-								<div class="validation-row" class:mismatch={check.status === 'mismatch'} class:valid={check.status === 'valid'}>
+								<div
+									class="validation-row"
+									class:mismatch={check.status === 'mismatch'}
+									class:valid={check.status === 'valid'}>
 									<img
 										src={check.status === 'valid'
 											? '/icons/humanity/status/network-wireless-encrypted.svg'
@@ -211,7 +223,10 @@
 								<div>
 									<strong>{service.id ?? 'Unnamed service'}</strong>
 									<p>{service.type ?? 'Unknown service type'}</p>
-									<code>{typeof service.serviceEndpoint === 'string' ? service.serviceEndpoint : JSON.stringify(service.serviceEndpoint)}</code>
+									<code
+										>{typeof service.serviceEndpoint === 'string'
+											? service.serviceEndpoint
+											: JSON.stringify(service.serviceEndpoint)}</code>
 								</div>
 							</div>
 						{:else}

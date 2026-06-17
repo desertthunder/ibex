@@ -76,7 +76,7 @@
 						class:active={blob.cid === repoBlobs.selectedCid}
 						aria-current={blob.cid === repoBlobs.selectedCid ? 'true' : undefined}
 						onclick={() => selectBlob(blob.cid)}>
-						<img src="/icons/humanity/mimes/image-x-generic.svg" alt="" width="24" height="24" />
+						<img src={blob.sourceIcon ?? '/icons/humanity/mimes/image-x-generic.svg'} alt="" width="24" height="24" />
 						<span>{blob.cid}</span>
 					</button>
 				{/each}

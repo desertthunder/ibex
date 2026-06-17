@@ -38,9 +38,9 @@ export type RepoRecordSummary = {
 	appLabel: string | null;
 };
 
-export type BlobReference = { cid: string; sourceUri: string | null };
+export type BlobReference = { cid: string; sourceUri: string | null; sourceIcon?: string };
 
-export type RepoBlobSummary = { cid: string; rawUrl: string; sourceUri: string | null };
+export type RepoBlobSummary = { cid: string; rawUrl: string; sourceUri: string | null; sourceIcon?: string };
 
 export type RecordRouteParams = { did: string; collection: string; rkey: string };
 

@@ -217,13 +217,7 @@
 		accountSetup.load();
 	}
 
-	async function openRepoRoute(route: {
-		did: string;
-		app?: string;
-		collection?: string;
-		rkey?: string;
-		cid?: string;
-	}) {
+	async function openRepoRoute(route: { did: string; app?: string; collection?: string; rkey?: string; cid?: string }) {
 		try {
 			const { hydratePublicIdentity } = await import('$lib/atproto/identity');
 			const identity = await hydratePublicIdentity(route.did);
@@ -241,10 +235,7 @@
 			if (route.app === 'blobs') {
 				await repoBrowser.load(identity);
 				await repoBlobs.load(identity, route.cid);
-				windowManager.setTitle(
-					'eog',
-					route.cid ? `${route.cid} - Eye of GNOME` : `${identity.handle} - Eye of GNOME`
-				);
+				windowManager.setTitle('eog', route.cid ? `${route.cid} - Eye of GNOME` : `${identity.handle} - Eye of GNOME`);
 				windowManager.open('eog');
 				return;
 			}
