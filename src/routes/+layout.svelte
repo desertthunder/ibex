@@ -4,6 +4,7 @@
 	import { afterNavigate, goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { repoSession } from '$lib/atproto/session.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
 	import { collectionPath, repoPath } from '$lib/atproto/routes';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
@@ -61,6 +62,7 @@
 	const documentViewerWindow = $derived(windowManager.getWindow('document-viewer'));
 	const identityInspectorWindow = $derived(windowManager.getWindow('identity-inspector'));
 	const eogWindow = $derived(windowManager.getWindow('eog'));
+	const repoIdentity = $derived(repoSession.identity ?? accountSetup.identity);
 	const shortcuts = $derived([
 		{
 			label: 'ibex Home',
@@ -85,8 +87,8 @@
 			icon: '/icons/humanity/apps/identity-inspector.svg',
 			selected: identityInspectorWindow?.isOpen && !identityInspectorWindow.isMinimized,
 			onactivate: () => {
-				if (accountSetup.identity) {
-					void goto(resolve(`/repos/${accountSetup.identity.did}/identity`), { keepFocus: true, noScroll: true });
+				if (repoIdentity) {
+					void goto(resolve(`/repos/${repoIdentity.did}/identity`), { keepFocus: true, noScroll: true });
 					return;
 				}
 
@@ -99,8 +101,8 @@
 			icon: '/icons/humanity/apps/eog.svg',
 			selected: eogWindow?.isOpen && !eogWindow.isMinimized,
 			onactivate: () => {
-				if (accountSetup.identity) {
-					void goto(resolve(`/repos/${accountSetup.identity.did}/blobs`), { keepFocus: true, noScroll: true });
+				if (repoIdentity) {
+					void goto(resolve(`/repos/${repoIdentity.did}/blobs`), { keepFocus: true, noScroll: true });
 					return;
 				}
 
@@ -205,7 +207,7 @@
 	}
 
 	function closeRecordWindow() {
-		const identity = accountSetup.identity;
+		const identity = repoIdentity;
 		const record = repoBrowser.selectedRecord;
 
 		if (identity && record) {
@@ -217,7 +219,7 @@
 	}
 
 	function closeIdentityInspector() {
-		const identity = accountSetup.identity;
+		const identity = repoIdentity;
 
 		if (identity) {
 			navigate(repoPath(identity.did));
@@ -228,7 +230,7 @@
 	}
 
 	function closeEyeOfGnome() {
-		const identity = accountSetup.identity;
+		const identity = repoIdentity;
 
 		if (identity) {
 			navigate(repoPath(identity.did));
@@ -359,7 +361,9 @@
 						onminimize={() => windowManager.minimize('gedit')}
 						onmaximize={() => windowManager.toggleMaximize('gedit')}
 						onclose={closeRecordWindow}>
-						<Gedit record={repoBrowser.selectedRecord} />
+						{#key repoBrowser.selectedRecord.uri}
+							<Gedit record={repoBrowser.selectedRecord} />
+						{/key}
 					</NativeWindow>
 				</div>
 			{/if}
@@ -373,13 +377,15 @@
 						windowId="identity-inspector"
 						title={identityInspectorWindow.title}
 						icon="/icons/humanity/apps/identity-inspector.svg"
-						address={accountSetup.identity ? `/repos/${accountSetup.identity.did}/identity` : undefined}
+						address={repoIdentity ? `/repos/${repoIdentity.did}/identity` : undefined}
 						maximized={identityInspectorWindow.isMaximized}
 						onfocus={() => windowManager.focus('identity-inspector')}
 						onminimize={() => windowManager.minimize('identity-inspector')}
 						onmaximize={() => windowManager.toggleMaximize('identity-inspector')}
 						onclose={closeIdentityInspector}>
-						<IdentityInspector />
+						{#key repoIdentity?.did}
+							<IdentityInspector />
+						{/key}
 					</AppWindow>
 				</div>
 			{/if}
@@ -390,7 +396,7 @@
 						windowId="eog"
 						title={eogWindow.title}
 						icon="/icons/humanity/apps/eog.svg"
-						address={accountSetup.identity ? `/repos/${accountSetup.identity.did}/blobs` : undefined}
+						address={repoIdentity ? `/repos/${repoIdentity.did}/blobs` : undefined}
 						showMenubar={false}
 						showToolbar={false}
 						maximized={eogWindow.isMaximized}

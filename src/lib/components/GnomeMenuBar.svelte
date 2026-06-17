@@ -1,24 +1,30 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { repoSession } from '$lib/atproto/session.svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
+	import { collectionPath } from '$lib/atproto/routes';
 	import { desktopSession } from '$lib/desktop-session.svelte';
 	import { windowManager } from '$lib/window-manager.svelte';
 	import GnomeTray from '$lib/components/GnomeTray.svelte';
 
+	type RepoPathname = `/repos/${string}`;
+	const navigateTo = goto as (url: string, options?: Parameters<typeof goto>[1]) => ReturnType<typeof goto>;
+
 	function changeAccount() {
 		windowManager.close('gedit');
 		repoBrowser.reset();
+		repoSession.clear();
 		accountSetup.reset();
 		void goto(resolve('/browse'));
 	}
 
 	function openCollection(collectionName: string) {
-		if (!accountSetup.identity) return;
+		const identity = repoSession.identity ?? accountSetup.identity;
+		if (!identity) return;
 
-		void goto(resolve('/browse'));
-		repoBrowser.selectCollection(accountSetup.identity, collectionName);
+		void navigateTo(resolve(collectionPath({ did: identity.did, collection: collectionName }) as RepoPathname));
 	}
 </script>
 
@@ -48,8 +54,10 @@
 	<details class="panel-menu">
 		<summary>System</summary>
 		<div class="menu-popover system-popover">
-			{#if accountSetup.identity}
-				<p class="menu-heading">Browsing @{accountSetup.identity.handle}</p>
+			{#if repoSession.identity}
+				<p class="menu-heading">Viewing @{repoSession.identity.handle}</p>
+			{:else if accountSetup.identity}
+				<p class="menu-heading">Default @{accountSetup.identity.handle}</p>
 			{/if}
 			<button type="button" onclick={() => desktopSession.lock()}>
 				<img src="/icons/humanity/status/network-wireless-encrypted.svg" alt="" width="16" height="16" />

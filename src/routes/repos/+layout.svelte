@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { repoBlobs } from '$lib/atproto/blobs.svelte';
 	import { hydratePublicIdentity } from '$lib/atproto/identity';
+	import { repoSession } from '$lib/atproto/session.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
-	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import CollectionBrowser from '$lib/components/CollectionBrowser.svelte';
 	import { repoRouteKey, type RepoRoute } from '$lib/desktop-routes';
 	import { errorMessage } from '$lib/utils/errors';
@@ -14,7 +14,15 @@
 	let { children } = $props();
 	let handledRouteKey: string | null = null;
 
+	onMount(() => {
+		openCurrentRoute();
+	});
+
 	afterNavigate(() => {
+		openCurrentRoute();
+	});
+
+	function openCurrentRoute() {
 		const route = page.data.repoRoute;
 		if (!route) return;
 
@@ -23,7 +31,7 @@
 
 		handledRouteKey = routeKey;
 		void openRepoRoute(route);
-	});
+	}
 
 	onDestroy(() => {
 		closeRoutedWindows();
@@ -32,7 +40,7 @@
 	async function openRepoRoute(route: RepoRoute) {
 		try {
 			const identity = await hydratePublicIdentity(route.did);
-			accountSetup.save(identity);
+			repoSession.set(identity);
 			windowManager.restore('main');
 			closeWindowsOutsideRoute(route);
 
@@ -67,11 +75,12 @@
 				return;
 			}
 
-			await repoBrowser.load(identity);
-
 			if (route.kind === 'collection') {
-				await repoBrowser.selectCollection(identity, route.collection);
+				await repoBrowser.loadCollectionRoute(identity, route.collection);
+				return;
 			}
+
+			await repoBrowser.load(identity);
 		} catch (unknownError) {
 			repoBrowser.error = errorMessage(unknownError, 'Could not open that repository route.');
 		}

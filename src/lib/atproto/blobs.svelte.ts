@@ -3,6 +3,7 @@ import type { Did } from '@atcute/lexicons/syntax';
 import type {} from '@atcute/atproto';
 import { errorMessage } from '$lib/utils/errors';
 import type { AccountIdentity, BlobReference, RepoBlobSummary } from './types';
+import { SvelteURL } from 'svelte/reactivity';
 
 class RepoBlobState {
 	blobs = $state<RepoBlobSummary[]>([]);
@@ -81,7 +82,15 @@ class RepoBlobState {
 
 	openMedia(identity: AccountIdentity, media: BlobReference) {
 		this.loadedDid = identity.did;
-		const summary = blobSummary(identity, media.cid, media.sourceUri, media.sourceIcon);
+		const summary = blobSummary(
+			identity,
+			media.cid,
+			media.sourceUri,
+			media.sourceIcon,
+			media.mimeType,
+			media.size,
+			media.path
+		);
 
 		if (!this.blobs.some((blob) => blob.cid === media.cid)) {
 			this.blobs = [summary, ...this.blobs];
@@ -121,7 +130,7 @@ class RepoBlobState {
 	}
 }
 
-function isBlobObject(value: object): value is { ref: { $link: string } } {
+function isBlobObject(value: object): value is { ref: { $link: string }; mimeType?: unknown; size?: unknown } {
 	if (!('ref' in value)) return false;
 	const { ref } = value;
 	return (
@@ -142,40 +151,63 @@ function blobSummary(
 	identity: AccountIdentity,
 	cid: string,
 	sourceUri: string | null,
-	sourceIcon?: string
+	sourceIcon?: string,
+	mimeType: string | null = null,
+	size: number | null = null,
+	path: string | null = null
 ): RepoBlobSummary {
-	return { cid, sourceUri, sourceIcon, rawUrl: rawBlobUrl(identity, cid) };
+	return { cid, sourceUri, sourceIcon, mimeType, size, path, rawUrl: rawBlobUrl(identity, cid) };
 }
 
-function rawBlobUrl(identity: AccountIdentity, cid: string) {
+export function rawBlobUrl(identity: AccountIdentity, cid: string) {
 	const service = identity.pds ?? 'https://public.api.bsky.app';
-	const url = new URL('/xrpc/com.atproto.sync.getBlob', service);
+	const url = new SvelteURL('/xrpc/com.atproto.sync.getBlob', service);
 	url.searchParams.set('did', identity.did);
 	url.searchParams.set('cid', cid);
 	return url.toString();
 }
 
 export function firstBlobReference(value: unknown, sourceUri: string | null): BlobReference | null {
-	if (typeof value !== 'object' || value === null) return null;
+	return blobReferences(value, sourceUri)[0] ?? null;
+}
+
+export function blobReferences(value: unknown, sourceUri: string | null): BlobReference[] {
+	return collectBlobReferences(value, sourceUri, []);
+}
+
+export function isRenderableBlob(reference: BlobReference) {
+	return Boolean(reference.mimeType?.startsWith('image/') || reference.mimeType?.startsWith('video/'));
+}
+
+function collectBlobReferences(value: unknown, sourceUri: string | null, path: string[]): BlobReference[] {
+	if (typeof value !== 'object' || value === null) return [];
 
 	if (isBlobObject(value)) {
-		return { cid: value.ref.$link, sourceUri };
+		return [
+			{
+				cid: value.ref.$link,
+				sourceUri,
+				mimeType: typeof value.mimeType === 'string' ? value.mimeType : null,
+				size: typeof value.size === 'number' ? value.size : null,
+				path: path.length > 0 ? path.join('.') : 'value'
+			}
+		];
 	}
 
 	if (Array.isArray(value)) {
-		for (const item of value) {
-			const found = firstBlobReference(item, sourceUri);
-			if (found) return found;
+		const references: BlobReference[] = [];
+		for (const [index, item] of value.entries()) {
+			references.push(...collectBlobReferences(item, sourceUri, [...path, `[${index}]`]));
 		}
-		return null;
+		return references;
 	}
 
-	for (const child of Object.values(value)) {
-		const found = firstBlobReference(child, sourceUri);
-		if (found) return found;
+	const references: BlobReference[] = [];
+	for (const [key, child] of Object.entries(value)) {
+		references.push(...collectBlobReferences(child, sourceUri, [...path, key]));
 	}
 
-	return null;
+	return references;
 }
 
 export const repoBlobs = new RepoBlobState();

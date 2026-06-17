@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { accountSetup } from '$lib/atproto/setup.svelte';
+	import { repoSession } from '$lib/atproto/session.svelte';
 	import { inspectIdentity, type IdentityCheck, type IdentityInspection } from '$lib/atproto/identity-inspector';
 	import { errorMessage } from '$lib/utils/errors';
 
@@ -10,7 +10,7 @@
 	let error = $state<string | null>(null);
 	let copiedValue = $state<string | null>(null);
 
-	const identity = $derived(accountSetup.identity);
+	const identity = $derived(repoSession.identity);
 	const keyrings = $derived.by(() => {
 		if (!inspection) return [];
 
@@ -44,7 +44,7 @@
 
 	async function loadInspection() {
 		if (!identity) {
-			error = 'No repository identity is configured.';
+			error = 'No repository identity is loaded.';
 			return;
 		}
 

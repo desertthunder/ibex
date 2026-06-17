@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { repoBlobs } from '$lib/atproto/blobs.svelte';
-	import { accountSetup } from '$lib/atproto/setup.svelte';
+	import { repoSession } from '$lib/atproto/session.svelte';
 
 	let previewMode = $state<'image' | 'video' | 'unsupported'>('image');
 	let copied = $state(false);
 
 	const selectedBlob = $derived(repoBlobs.selectedBlob);
+	const identity = $derived(repoSession.identity);
 	const canGoPrevious = $derived(repoBlobs.selectedIndex > 0);
 	const canGoNext = $derived(repoBlobs.selectedIndex >= 0 && repoBlobs.selectedIndex < repoBlobs.blobs.length - 1);
 
 	function selectBlob(cid: string) {
-		const identity = accountSetup.identity;
 		if (!identity) return;
 		repoBlobs.select(identity, cid);
 		resetPreview();
@@ -32,7 +32,6 @@
 	}
 
 	function loadMore() {
-		const identity = accountSetup.identity;
 		if (!identity) return;
 		void repoBlobs.loadMore(identity);
 	}
@@ -60,7 +59,7 @@
 			<img src="/icons/humanity/apps/eog.svg" alt="" width="32" height="32" />
 			<div>
 				<h2>Image Viewer</h2>
-				<p>{accountSetup.identity?.handle ?? 'at:// blobs'}</p>
+				<p>{identity?.handle ?? 'at:// blobs'}</p>
 			</div>
 		</header>
 

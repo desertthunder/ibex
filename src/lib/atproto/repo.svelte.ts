@@ -61,6 +61,48 @@ class RepoBrowserState {
 		}
 	}
 
+	async loadCollectionRoute(identity: AccountIdentity, collectionName: string) {
+		if (this.loadedDid === identity.did && this.collections.length > 0) {
+			this.ensureCollection(collectionName);
+			await this.selectCollection(identity, collectionName);
+			return;
+		}
+
+		this.reset();
+		this.loadedDid = identity.did;
+		this.selectedCollection = collectionName;
+		this.isLoadingCollections = true;
+		this.error = null;
+
+		try {
+			const repo = await describeRepo(identity);
+			const collectionNames = repo.collections.some((name) => name === collectionName)
+				? repo.collections
+				: [collectionName, ...repo.collections];
+
+			this.collections = collectionNames.sort().map((name) => collectionSummaryForName(name, null));
+			await this.selectCollection(identity, collectionName);
+		} catch (unknownError) {
+			const loadedFromCache = await this.loadRecordsFromCache(identity, collectionName);
+			if (this.collections.length === 0) {
+				this.collections = [collectionSummaryForName(collectionName, null)];
+			}
+			this.error = loadedFromCache
+				? `Showing cached records. ${errorMessage(unknownError, `Could not load records for ${collectionName}.`)}`
+				: errorMessage(unknownError, `Could not load records for ${collectionName}.`);
+		} finally {
+			this.isLoadingCollections = false;
+		}
+	}
+
+	private ensureCollection(collectionName: string) {
+		if (this.collections.some((collection) => collection.name === collectionName)) return;
+
+		this.collections = [...this.collections, collectionSummaryForName(collectionName, null)].sort((a, b) =>
+			a.name.localeCompare(b.name)
+		);
+	}
+
 	async selectCollection(identity: AccountIdentity, collectionName: string) {
 		this.selectedCollection = collectionName;
 		this.selectedRecord = null;
@@ -176,9 +218,8 @@ class RepoBrowserState {
 		this.error = null;
 
 		try {
-			const rpc = createRepoClient(identity);
 			const [repo, record] = await Promise.all([
-				ok(rpc.get('com.atproto.repo.describeRepo', { params: { repo: identity.did as ActorIdentifier } })),
+				describeRepo(identity),
 				getRepoRecord(identity, collectionName, rkey)
 			]);
 			const collectionNames = repo.collections.some((name) => name === collectionName)
@@ -266,6 +307,11 @@ class RepoBrowserState {
 
 function createRepoClient(identity: AccountIdentity) {
 	return new Client({ handler: simpleFetchHandler({ service: identity.pds ?? 'https://public.api.bsky.app' }) });
+}
+
+function describeRepo(identity: AccountIdentity) {
+	const rpc = createRepoClient(identity);
+	return ok(rpc.get('com.atproto.repo.describeRepo', { params: { repo: identity.did as ActorIdentifier } }));
 }
 
 async function getRepoRecord(identity: AccountIdentity, collectionName: string, rkey: string): Promise<UnknownRecord> {

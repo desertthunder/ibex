@@ -1,10 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { ThemeRegistration } from 'shiki';
-	import { accountSetup } from '$lib/atproto/setup.svelte';
+	import { blobPath } from '$lib/atproto/routes';
+	import { blobReferences, isRenderableBlob, rawBlobUrl, repoBlobs } from '$lib/atproto/blobs.svelte';
+	import { repoSession } from '$lib/atproto/session.svelte';
 	import { isRecordValue } from '$lib/atproto/types';
-	import type { RepoRecordSummary } from '$lib/atproto/types';
+	import type { BlobReference, RepoRecordSummary } from '$lib/atproto/types';
 	import { truncate } from '$lib/utils/text';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	type Props = { record: RepoRecordSummary };
 	type TokenLine = Array<{ content: string; color?: string; fontStyle?: number }>;
@@ -17,6 +21,8 @@
 	let wordWrap = $state(false);
 	let copied = $state(false);
 	let copyTimeout: ReturnType<typeof setTimeout> | null = null;
+	type RepoPathname = `/repos/${string}`;
+	const navigateTo = goto as (url: string, options?: Parameters<typeof goto>[1]) => ReturnType<typeof goto>;
 
 	const recordType = $derived.by(() => {
 		if (!isRecordValue(record.value)) return record.collection;
@@ -27,9 +33,11 @@
 		return record.collection;
 	});
 	const schemaFields = $derived.by(() => schemaFieldsForRecord(record.value));
+	const attachments = $derived.by(() => blobReferences(record.value, record.uri));
+	const identity = $derived(repoSession.identity);
 	const rawPdsLink = $derived.by(() => {
-		const pds = accountSetup.identity?.pds;
-		const repo = accountSetup.identity?.did;
+		const pds = identity?.pds;
+		const repo = identity?.did;
 		if (!pds || !repo) return null;
 
 		const params = new URLSearchParams({ repo, collection: record.collection, rkey: record.rkey });
@@ -138,19 +146,45 @@
 		if (summary.collection === 'app.bsky.feed.post') {
 			links.push({
 				label: 'Bluesky',
-				href: `https://bsky.app/profile/${accountSetup.identity?.did}/post/${summary.rkey}`
+				href: `https://bsky.app/profile/${identity?.did ?? summary.author.replace(/^@/, '')}/post/${summary.rkey}`
 			});
 		}
 
 		return links;
 	}
 
+	function previewAttachment(attachment: BlobReference) {
+		if (!identity || !isRenderableBlob(attachment)) return;
+
+		repoBlobs.openMedia(identity, { ...attachment, sourceIcon: record.icon });
+		void navigateTo(resolve(blobPath(identity.did, attachment.cid) as RepoPathname), {
+			keepFocus: true,
+			noScroll: true
+		});
+	}
+
+	function openRawAttachment(attachment: BlobReference) {
+		if (!identity) return;
+
+		window.open(rawBlobUrl(identity, attachment.cid), '_blank', 'noopener,noreferrer');
+	}
+
+	function attachmentSizeLabel(size: number | null) {
+		if (size === null) return 'Unknown size';
+		if (size < 1024) return `${size} B`;
+		if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+		return `${(size / 1024 / 1024).toFixed(1)} MB`;
+	}
+
+	function attachmentIcon(attachment: BlobReference) {
+		if (attachment.mimeType?.startsWith('image/')) return '/icons/humanity/mimes/image-x-generic.svg';
+		if (attachment.mimeType?.startsWith('video/')) return '/icons/humanity/mimes/video-x-generic.svg';
+		if (attachment.mimeType === 'application/pdf') return '/icons/humanity/mimes/gnome-mime-application-pdf.svg';
+		return '/icons/humanity/mimes/text-x-generic.svg';
+	}
+
 	onMount(() => {
 		void highlight();
-	});
-
-	$effect(() => {
-		if (record.uri) void highlight();
 	});
 </script>
 
@@ -268,7 +302,7 @@
 					<dd>{record.rkey}</dd>
 				</div>
 				<div>
-					<dt>Read-only verification</dt>
+					<dt>Read-only?</dt>
 					<dd>
 						{#if record.cid}
 							Loaded as a public repo record with an immutable CID.
@@ -297,6 +331,30 @@
 					{/each}
 				</ul>
 			</section>
+
+			{#if attachments.length > 0}
+				<section class="attachment-list" aria-label="Blob attachments">
+					<h2>Blob attachments</h2>
+					<ul>
+						{#each attachments as attachment (`${attachment.path}-${attachment.cid}`)}
+							<li>
+								<img src={attachmentIcon(attachment)} alt="" width="24" height="24" />
+								<div>
+									<strong>{attachment.path}</strong>
+									<span>{attachment.mimeType ?? 'Unknown MIME'} · {attachmentSizeLabel(attachment.size)}</span>
+									<code>{attachment.cid}</code>
+								</div>
+								<div class="attachment-actions">
+									{#if isRenderableBlob(attachment)}
+										<button type="button" onclick={() => previewAttachment(attachment)}>Preview</button>
+									{/if}
+									<button type="button" onclick={() => openRawAttachment(attachment)}>Raw blob</button>
+								</div>
+							</li>
+						{/each}
+					</ul>
+				</section>
+			{/if}
 		</div>
 	{/if}
 
@@ -566,7 +624,8 @@
 		gap: var(--space-2);
 	}
 
-	.external-links ul {
+	.external-links ul,
+	.attachment-list ul {
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-2);
@@ -575,8 +634,10 @@
 		list-style: none;
 	}
 
-	.external-links a {
-		display: inline-block;
+	.external-links a,
+	.attachment-actions button {
+		display: flex;
+		align-items: center;
 		padding: var(--space-2) var(--space-3);
 		color: var(--base01);
 		background: linear-gradient(#eeeeec, #b3b7b0);
@@ -587,6 +648,62 @@
 		font-size: var(--text-1);
 		font-weight: 700;
 		text-decoration: none;
+	}
+
+	.attachment-list {
+		display: grid;
+		gap: var(--space-2);
+	}
+
+	.attachment-list h2 {
+		color: var(--base07);
+		font-size: var(--text-3);
+		line-height: var(--leading-tight);
+	}
+
+	.attachment-list ul {
+		display: grid;
+	}
+
+	.attachment-list li {
+		display: grid;
+		grid-template-columns: 24px minmax(0, 1fr) auto;
+		gap: var(--space-2);
+		align-items: center;
+		padding: var(--space-2);
+		background: var(--base10);
+		border: 1px solid var(--base02);
+	}
+
+	.attachment-list li > div {
+		display: grid;
+		gap: 2px;
+		min-width: 0;
+	}
+
+	.attachment-list strong,
+	.attachment-list span,
+	.attachment-list code {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.attachment-list strong {
+		color: var(--base07);
+		font-size: var(--text-1);
+	}
+
+	.attachment-list span,
+	.attachment-list code {
+		color: var(--base05);
+		font-family: var(--font-mono);
+		font-size: var(--text-0);
+	}
+
+	.attachment-actions {
+		display: flex;
+		gap: var(--space-1);
 	}
 
 	.gedit-code {

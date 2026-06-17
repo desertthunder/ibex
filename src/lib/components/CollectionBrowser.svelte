@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import { firstBlobReference, repoBlobs } from '$lib/atproto/blobs.svelte';
+	import { repoSession } from '$lib/atproto/session.svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
-	import { blobPath, collectionPath, identityPath, recordPath } from '$lib/atproto/routes';
+	import { collectionPath, identityPath, recordPath } from '$lib/atproto/routes';
 	import { isRecordValue } from '$lib/atproto/types';
 	import type { CollectionSummary, RepoRecordSummary } from '$lib/atproto/types';
 	import { SvelteMap } from 'svelte/reactivity';
@@ -31,20 +32,19 @@
 		if (!reverseRecords) return repoBrowser.records;
 		return [...repoBrowser.records].reverse();
 	});
+	const identity = $derived(repoSession.identity ?? (page.route.id === '/browse' ? accountSetup.identity : null));
+	const canUseAsDefault = $derived(Boolean(identity && identity.did !== accountSetup.identity?.did));
 	type RepoPathname = `/repos/${string}`;
 	const navigateTo = goto as (url: string, options?: Parameters<typeof goto>[1]) => ReturnType<typeof goto>;
 
 	onMount(() => {
-		const identity = accountSetup.identity;
-
-		if (identity) {
+		if (page.route.id === '/browse' && identity && repoBrowser.loadedDid !== identity.did) {
+			repoSession.set(identity);
 			repoBrowser.load(identity);
 		}
 	});
 
 	function selectCollection(collectionName: string) {
-		const identity = accountSetup.identity;
-
 		if (identity) {
 			searchQuery = '';
 			navigate(collectionPath({ did: identity.did, collection: collectionName }));
@@ -52,8 +52,6 @@
 	}
 
 	function searchRecords() {
-		const identity = accountSetup.identity;
-
 		if (identity) {
 			repoBrowser.searchRecords(identity, searchQuery);
 		}
@@ -65,16 +63,6 @@
 	}
 
 	function openRecord(record: RepoRecordSummary) {
-		const identity = accountSetup.identity;
-		const blob = firstBlobReference(record.value, record.uri);
-
-		if (identity && blob) {
-			repoBrowser.selectedRecord = record;
-			repoBlobs.openMedia(identity, { ...blob, sourceIcon: record.icon });
-			navigate(blobPath(identity.did, blob.cid));
-			return;
-		}
-
 		repoBrowser.selectedRecord = record;
 
 		if (identity) {
@@ -83,14 +71,12 @@
 	}
 
 	function openIdentityInspector() {
-		const identity = accountSetup.identity;
 		if (!identity) return;
 
 		navigate(identityPath(identity.did));
 	}
 
 	function updatePageSize(event: Event) {
-		const identity = accountSetup.identity;
 		const select = event.currentTarget;
 
 		if (!(select instanceof HTMLSelectElement) || !identity) return;
@@ -138,6 +124,11 @@
 		void navigateTo(resolve(path as RepoPathname), { keepFocus: true, noScroll: true });
 	}
 
+	function useCurrentRepoAsDefault() {
+		if (!identity) return;
+		accountSetup.save(identity);
+	}
+
 	function groupCollections(collections: CollectionSummary[]) {
 		type M = { namespace: string; label: string; icon: string; collections: CollectionSummary[] };
 		const groups = new SvelteMap<string, M>();
@@ -170,7 +161,7 @@
 	<aside class="sidebar" aria-label="Collections">
 		<header>
 			<h2>Collections</h2>
-			<p>{accountSetup.identity?.handle ?? 'at:// repo folders'}</p>
+			<p>{identity?.handle ?? 'at:// repo folders'}</p>
 		</header>
 
 		<label class="collection-filter">
@@ -231,7 +222,7 @@
 				{/if}
 				<p>
 					{#if repoBrowser.isLoadingRecords}
-						Fetching public records from {accountSetup.identity?.pds ?? 'the public API'}…
+						Fetching public records from {identity?.pds ?? 'the public API'}…
 					{:else if repoBrowser.searchQuery}
 						Searching cached records for “{repoBrowser.searchQuery}”.
 					{:else}
@@ -289,14 +280,16 @@
 						{/if}
 					</div>
 				</form>
-				<button
-					class="identity-launcher"
-					type="button"
-					disabled={!accountSetup.identity}
-					onclick={openIdentityInspector}>
+				<button class="identity-launcher" type="button" disabled={!identity} onclick={openIdentityInspector}>
 					<img src="/icons/humanity/apps/identity-inspector.svg" alt="" width="22" height="22" />
 					<span>Identity</span>
 				</button>
+				{#if canUseAsDefault}
+					<button class="identity-launcher" type="button" onclick={useCurrentRepoAsDefault}>
+						<img src="/icons/humanity/places/user-home.svg" alt="" width="22" height="22" />
+						<span>Use as default</span>
+					</button>
+				{/if}
 			</div>
 		</div>
 
@@ -337,7 +330,7 @@
 						class="load-more-records"
 						type="button"
 						disabled={repoBrowser.isLoadingMoreRecords}
-						onclick={() => accountSetup.identity && repoBrowser.loadNextRecordPage(accountSetup.identity)}>
+						onclick={() => identity && repoBrowser.loadNextRecordPage(identity)}>
 						{repoBrowser.isLoadingMoreRecords ? 'Loading more records…' : 'Load more records'}
 					</button>
 				{/if}
