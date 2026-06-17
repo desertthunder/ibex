@@ -3,11 +3,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { dev } from '$app/environment';
-	import { goto } from '$app/navigation';
+	import { afterNavigate, goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { repoBlobs } from '$lib/atproto/blobs.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
+	import { collectionPath, repoPath } from '$lib/atproto/routes';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import favicon from '$lib/assets/favicon.svg';
 	import { desktopSession } from '$lib/desktop-session.svelte';
@@ -30,13 +30,13 @@
 	import '$lib/styles/style.css';
 
 	let { children } = $props();
-	let showAboutComputer = $state(false);
 	let showStickyNote = $state(true);
 	let bootStatus = $state<'booting' | 'ready' | 'error'>('booting');
 	let bootStep = $state('Loading database');
 	let bootError = $state<string | null>(null);
 	let cacheDisabled = $state(false);
-	let handledRepoRoute = $state<string | null>(null);
+	type RepoPathname = `/repos/${string}`;
+	const navigateTo = goto as (url: string, options?: Parameters<typeof goto>[1]) => ReturnType<typeof goto>;
 
 	const routeRequiresSetup = $derived(page.route.id === '/browse' && !accountSetup.isConfigured);
 	const routeUsesNativeWindow = $derived(page.route.id === '/' || page.route.id?.startsWith('/docs'));
@@ -57,6 +57,7 @@
 
 	const mainWindow = $derived(windowManager.getWindow('main'));
 	const aboutWindow = $derived(windowManager.getWindow('about-computer'));
+	const showAboutComputer = $derived(aboutWindow?.isOpen ?? false);
 	const geditWindow = $derived(windowManager.getWindow('gedit'));
 	const documentViewerWindow = $derived(windowManager.getWindow('document-viewer'));
 	const identityInspectorWindow = $derived(windowManager.getWindow('identity-inspector'));
@@ -113,7 +114,6 @@
 			icon: '/icons/humanity/devices/computer.svg',
 			selected: showAboutComputer,
 			onactivate: () => {
-				showAboutComputer = true;
 				windowManager.open('about-computer');
 			}
 		},
@@ -134,32 +134,8 @@
 		}
 	]);
 
-	$effect(() => {
-		windowManager.setTitle('main', windowTitle, windowIcon);
-		showAboutComputer = windowManager.getWindow('about-computer')?.isOpen ?? false;
-
-		if (repoBrowser.selectedRecord) {
-			windowManager.setTitle(
-				'gedit',
-				`${repoBrowser.selectedRecord.rkey}.json - gedit`,
-				repoBrowser.selectedRecord.icon
-			);
-		}
-
-		if (repoBlobs.selectedCid) {
-			windowManager.setTitle('eog', `${repoBlobs.selectedCid} - Eye of GNOME`, '/icons/humanity/apps/eog.svg');
-		}
-	});
-
-	$effect(() => {
-		const route = repoRouteFromParams();
-		if (bootStatus !== 'ready' || !route) return;
-
-		const routeKey = [route.did, route.app, route.collection, route.rkey, route.cid].filter(Boolean).join('/');
-		if (handledRepoRoute === routeKey) return;
-
-		handledRepoRoute = routeKey;
-		void openRepoRoute(route);
+	afterNavigate(() => {
+		setMainWindowTitle();
 	});
 
 	onMount(() => {
@@ -189,6 +165,7 @@
 			}
 
 			accountSetup.load();
+			setMainWindowTitle();
 			bootStatus = 'ready';
 		} catch (error) {
 			bootError = errorMessage(error, 'Could not start the local cache.');
@@ -215,67 +192,7 @@
 		cacheDisabled = true;
 		bootStatus = 'ready';
 		accountSetup.load();
-	}
-
-	async function openRepoRoute(route: { did: string; app?: string; collection?: string; rkey?: string; cid?: string }) {
-		try {
-			const { hydratePublicIdentity } = await import('$lib/atproto/identity');
-			const identity = await hydratePublicIdentity(route.did);
-
-			accountSetup.save(identity);
-			windowManager.restore('main');
-
-			if (route.app === 'identity') {
-				await repoBrowser.load(identity);
-				windowManager.setTitle('identity-inspector', `${identity.handle} - Identity Inspector`);
-				windowManager.open('identity-inspector');
-				return;
-			}
-
-			if (route.app === 'blobs') {
-				await repoBrowser.load(identity);
-				await repoBlobs.load(identity, route.cid);
-				windowManager.setTitle('eog', route.cid ? `${route.cid} - Eye of GNOME` : `${identity.handle} - Eye of GNOME`);
-				windowManager.open('eog');
-				return;
-			}
-
-			if (route.collection && route.rkey) {
-				await repoBrowser.openRecordRoute(identity, route.collection, route.rkey);
-				if (repoBrowser.selectedRecord) {
-					windowManager.open('gedit');
-				}
-				return;
-			}
-
-			await repoBrowser.load(identity);
-
-			if (route.collection) {
-				await repoBrowser.selectCollection(identity, route.collection);
-			}
-		} catch (unknownError) {
-			repoBrowser.error = errorMessage(unknownError, 'Could not open that repository route.');
-		}
-	}
-
-	function repoRouteFromParams() {
-		if (!page.route.id?.startsWith('/repos/[did]')) return null;
-
-		const { did, collection, rkey } = page.params;
-
-		if (!did) return null;
-		return {
-			did,
-			app:
-				page.route.id === '/repos/[did]/identity'
-					? 'identity'
-					: page.route.id?.startsWith('/repos/[did]/blobs')
-						? 'blobs'
-						: undefined,
-			collection,
-			rkey,
-			cid: page.params.cid
-		};
+		setMainWindowTitle();
 	}
 
 	async function waitForMinimumBootTime(startedAt: number) {
@@ -285,6 +202,48 @@
 		if (remaining > 0) {
 			await new Promise((resolve) => setTimeout(resolve, remaining));
 		}
+	}
+
+	function closeRecordWindow() {
+		const identity = accountSetup.identity;
+		const record = repoBrowser.selectedRecord;
+
+		if (identity && record) {
+			navigate(collectionPath({ did: identity.did, collection: record.collection }));
+			return;
+		}
+
+		windowManager.close('gedit');
+	}
+
+	function closeIdentityInspector() {
+		const identity = accountSetup.identity;
+
+		if (identity) {
+			navigate(repoPath(identity.did));
+			return;
+		}
+
+		windowManager.close('identity-inspector');
+	}
+
+	function closeEyeOfGnome() {
+		const identity = accountSetup.identity;
+
+		if (identity) {
+			navigate(repoPath(identity.did));
+			return;
+		}
+
+		windowManager.close('eog');
+	}
+
+	function navigate(path: string) {
+		void navigateTo(resolve(path as RepoPathname), { keepFocus: true, noScroll: true });
+	}
+
+	function setMainWindowTitle() {
+		windowManager.setTitle('main', windowTitle, windowIcon);
 	}
 </script>
 
@@ -392,7 +351,7 @@
 						onfocus={() => windowManager.focus('gedit')}
 						onminimize={() => windowManager.minimize('gedit')}
 						onmaximize={() => windowManager.toggleMaximize('gedit')}
-						onclose={() => windowManager.close('gedit')}>
+						onclose={closeRecordWindow}>
 						<Gedit record={repoBrowser.selectedRecord} />
 					</NativeWindow>
 				</div>
@@ -412,7 +371,7 @@
 						onfocus={() => windowManager.focus('identity-inspector')}
 						onminimize={() => windowManager.minimize('identity-inspector')}
 						onmaximize={() => windowManager.toggleMaximize('identity-inspector')}
-						onclose={() => windowManager.close('identity-inspector')}>
+						onclose={closeIdentityInspector}>
 						<IdentityInspector />
 					</AppWindow>
 				</div>
@@ -431,7 +390,7 @@
 						onfocus={() => windowManager.focus('eog')}
 						onminimize={() => windowManager.minimize('eog')}
 						onmaximize={() => windowManager.toggleMaximize('eog')}
-						onclose={() => windowManager.close('eog')}>
+						onclose={closeEyeOfGnome}>
 						<EyeOfGnome />
 					</AppWindow>
 				</div>

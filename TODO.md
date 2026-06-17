@@ -125,7 +125,7 @@ Every new surface should feel like a GNOME 2 app that happens to speak `at://`.
   - Mock external ATProto boundaries in tests unless the test is explicitly an integration
     smoke test.
 
-## V2
+## Parking Lot
 
 - **gnome-terminal**
   - AT Protocol REPL: resolve handles, inspect DID documents, run raw
@@ -140,8 +140,6 @@ Every new surface should feel like a GNOME 2 app that happens to speak `at://`.
 - Local starred/bookmarked records surfaced as a “Bookmarks” sidebar item in Nautilus.
 - Sync indicator in the panel showing last-synced time per repo/collection.
 - Multi-repo switching from the panel without implying authentication.
-
-## Parking Lot
 
 - Relay
 - Web Browser for lexicon viewing (DNS resolution)

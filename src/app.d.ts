@@ -4,7 +4,9 @@ declare global {
 	namespace App {
 		// interface Error {}
 		// interface Locals {}
-		// interface PageData {}
+		interface PageData {
+			repoRoute?: import('$lib/desktop-routes').RepoRoute;
+		}
 		// interface PageState {}
 		// interface Platform {}
 	}

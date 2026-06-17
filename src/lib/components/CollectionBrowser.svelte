@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { firstBlobReference, repoBlobs } from '$lib/atproto/blobs.svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
-	import { blobPath, identityPath, recordPath } from '$lib/atproto/routes';
+	import { blobPath, collectionPath, identityPath, recordPath } from '$lib/atproto/routes';
 	import type { CollectionSummary, RepoRecordSummary } from '$lib/atproto/types';
-	import { windowManager } from '$lib/window-manager.svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 
 	let searchQuery = $state('');
 	const collectionGroups = $derived.by(() => groupCollections(repoBrowser.collections));
+	type RepoPathname = `/repos/${string}`;
+	const navigateTo = goto as (url: string, options?: Parameters<typeof goto>[1]) => ReturnType<typeof goto>;
 
 	onMount(() => {
 		const identity = accountSetup.identity;
@@ -25,7 +27,7 @@
 
 		if (identity) {
 			searchQuery = '';
-			repoBrowser.selectCollection(identity, collectionName);
+			navigate(collectionPath({ did: identity.did, collection: collectionName }));
 		}
 	}
 
@@ -49,22 +51,14 @@
 		if (identity && blob) {
 			repoBrowser.selectedRecord = record;
 			repoBlobs.openMedia(identity, { ...blob, sourceIcon: record.icon });
-			windowManager.setTitle('eog', `${blob.cid} - Eye of GNOME`, '/icons/humanity/apps/eog.svg');
-			windowManager.open('eog');
-			void goto(blobPath(identity.did, blob.cid), { keepFocus: true, noScroll: true });
+			navigate(blobPath(identity.did, blob.cid));
 			return;
 		}
 
 		repoBrowser.selectedRecord = record;
-		windowManager.setTitle('gedit', `${record.rkey}.json - gedit`, record.icon);
-		windowManager.open('gedit');
 
 		if (identity) {
-			// eslint-disable-next-line svelte/no-navigation-without-resolve
-			void goto(recordPath({ did: identity.did, collection: record.collection, rkey: record.rkey }), {
-				keepFocus: true,
-				noScroll: true
-			});
+			navigate(recordPath({ did: identity.did, collection: record.collection, rkey: record.rkey }));
 		}
 	}
 
@@ -72,7 +66,11 @@
 		const identity = accountSetup.identity;
 		if (!identity) return;
 
-		void goto(identityPath(identity.did), { keepFocus: true, noScroll: true });
+		navigate(identityPath(identity.did));
+	}
+
+	function navigate(path: string) {
+		void navigateTo(resolve(path as RepoPathname), { keepFocus: true, noScroll: true });
 	}
 
 	function groupCollections(collections: CollectionSummary[]) {
