@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+### Minor Changes
+
+- added an identity inspector to inspect atproto identity
+
 ## [Unreleased]
 
 Target release: `v1.0.0`.
