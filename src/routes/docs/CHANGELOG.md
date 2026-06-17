@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.0
+
+### Changed
+
+- refactor routing to use a controller
+- added a blob viewer made to feel like eye of gnome
+- add localStorage backed startup sound from ubuntu
+- expand repo browser capabilities with more information
+- changed identity resolution to url state based for deep linking
+- add build version to sticky note
+- added more granular build details to About thie Computer
+
+### Fixed
+
+- fix url positioning
+- icon overrides via namespaces
+
 ## 1.1.0 - 2026-06-16
 
 ### Minor Changes
