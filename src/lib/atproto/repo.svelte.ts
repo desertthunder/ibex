@@ -1,12 +1,13 @@
 import { Client, ok, simpleFetchHandler } from '@atcute/client';
 import type { ActorIdentifier, Nsid } from '@atcute/lexicons/syntax';
 import type {} from '@atcute/atproto';
-import type { CachedRecord, CachedRecordInput } from '$lib/db';
+import type { CachedRecordInput } from '$lib/db';
 import { errorMessage } from '$lib/utils/errors';
 import { appLabelForCollection, collectionIconMatch } from './collection-icons';
 import { listRecordPages, type RecordPage } from './pagination';
 import { isRecordValue } from './types';
 import type { AccountIdentity, CollectionSummary, RepoRecordSummary, UnknownRecord } from './types';
+import { truncate } from '$lib/utils/text';
 
 class RepoBrowserState {
 	collections = $state<CollectionSummary[]>([]);
@@ -18,6 +19,7 @@ class RepoBrowserState {
 	canLoadMoreRecords = $state(false);
 	isSearching = $state(false);
 	searchQuery = $state('');
+	recordPageSize = $state(25);
 	error = $state<string | null>(null);
 	loadedDid = $state<string | null>(null);
 	selectedRecord = $state<RepoRecordSummary | null>(null);
@@ -69,7 +71,7 @@ class RepoBrowserState {
 
 		try {
 			this.records = [];
-			this.recordPages = listRecordPages({ identity, collection: collectionName, limit: 25 });
+			this.recordPages = listRecordPages({ identity, collection: collectionName, limit: this.recordPageSize });
 			await this.loadNextRecordPage(identity, { throwOnError: true });
 		} catch (unknownError) {
 			const loadedFromCache = await this.loadRecordsFromCache(identity, collectionName);
@@ -154,7 +156,9 @@ class RepoBrowserState {
 				repoDid: identity.did,
 				collection: this.selectedCollection ?? undefined
 			});
-			this.records = results.map((record) => summarizeCachedRecord(record, identity.handle));
+			this.records = results.map((record) => {
+				return summarizeRecord({ uri: record.uri, cid: record.cid, value: record.value }, identity.handle);
+			});
 		} catch (searchError) {
 			this.records = [];
 			this.error = errorMessage(searchError, 'Could not search records.');
@@ -183,7 +187,7 @@ class RepoBrowserState {
 
 			this.collections = collectionNames.sort().map((name) => collectionSummaryForName(name, null));
 			this.selectedCollection = collectionName;
-			this.recordPages = listRecordPages({ identity, collection: collectionName, limit: 25 });
+			this.recordPages = listRecordPages({ identity, collection: collectionName, limit: this.recordPageSize });
 			await this.loadNextRecordPage(identity, { throwOnError: false });
 
 			const summary = summarizeRecord(record, identity.handle);
@@ -208,13 +212,20 @@ class RepoBrowserState {
 		try {
 			const { getDatabase, listCachedRecords } = await import('$lib/db');
 			const db = await getDatabase();
-			const records = await listCachedRecords(db, { repoDid: identity.did, collection: collectionName, limit: 25 });
+			const records = await listCachedRecords(db, {
+				repoDid: identity.did,
+				collection: collectionName,
+				limit: this.recordPageSize
+			});
 
 			if (records.length === 0) return false;
 
 			this.recordPages = null;
 			this.canLoadMoreRecords = false;
-			this.records = records.map((record) => summarizeCachedRecord(record, identity.handle));
+			this.records = records.map((record) => {
+				return summarizeRecord({ uri: record.uri, cid: record.cid, value: record.value }, identity.handle);
+			});
+
 			this.collections = this.collections.map((collection) =>
 				collection.name === collectionName ? { ...collection, loadedCount: records.length } : collection
 			);
@@ -222,6 +233,16 @@ class RepoBrowserState {
 		} catch (cacheError) {
 			console.warn('Could not read cached records.', cacheError);
 			return false;
+		}
+	}
+
+	async setRecordPageSize(identity: AccountIdentity, pageSize: number) {
+		if (this.recordPageSize === pageSize) return;
+
+		this.recordPageSize = pageSize;
+
+		if (this.selectedCollection && !this.searchQuery) {
+			await this.selectCollection(identity, this.selectedCollection);
 		}
 	}
 
@@ -236,6 +257,7 @@ class RepoBrowserState {
 		this.canLoadMoreRecords = false;
 		this.isSearching = false;
 		this.searchQuery = '';
+		this.recordPageSize = 25;
 		this.error = null;
 		this.loadedDid = null;
 		this.recordPages = null;
@@ -270,6 +292,7 @@ function summarizeRecord(record: UnknownRecord, handle: string): RepoRecordSumma
 	const text = stringifyField(value.text) ?? stringifyField(value.name) ?? stringifyField(value.displayName);
 	const type = stringifyField(value.$type) ?? collectionFromUri(record.uri);
 	const createdAt = stringifyField(value.createdAt) ?? stringifyField(value.indexedAt);
+	// TODO: we should probably only show rkey
 	const title = text ? truncate(text.replaceAll('\n', ' '), 54) : recordKeyFromUri(record.uri);
 	const body = text ?? `Record type: ${type}`;
 
@@ -287,10 +310,6 @@ function summarizeRecord(record: UnknownRecord, handle: string): RepoRecordSumma
 		icon: iconForCollection(collectionFromUri(record.uri)),
 		appLabel: appLabelForCollection(collectionFromUri(record.uri))
 	};
-}
-
-function summarizeCachedRecord(record: CachedRecord, handle: string): RepoRecordSummary {
-	return summarizeRecord({ uri: record.uri, cid: record.cid, value: record.value }, handle);
 }
 
 async function cacheLiveRecords(
@@ -344,10 +363,6 @@ function toCachedRecordInput(id: AccountIdentity, name: string, record: UnknownR
 
 function stringifyField(value: unknown) {
 	return typeof value === 'string' && value.length > 0 ? value : null;
-}
-
-function truncate(value: string, maxLength: number) {
-	return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
 }
 
 function collectionFromUri(uri: string) {

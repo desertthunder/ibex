@@ -20,6 +20,7 @@ no authentication or server.
   - `/labels` -> Label Browser.
   - `/car` -> Archive Manager.
   - `/servers/:host` -> Network Servers.
+  - `/lexicons` and `/lexicons/:nsid` -> Web Browser.
 - Route loaders should stay browser-only and public/read-only.
 - DIDs remain canonical in URLs; handles are accepted as lookup/input affordances and
   resolved client-side.
@@ -84,19 +85,42 @@ Every new surface should feel like a GNOME 2 app that happens to speak `at://`.
 - [ ] **Network Servers**
   - Inspect public PDS host info, version, available domains, and repo list.
   - Link repos into Nautilus and open server firehose views in System Monitor.
+- [ ] **Web Browser**
+  - GNOME-style browser for reading Lexicon schemas and resolution traces.
+  - Accept NSIDs, `at://` lexicon records, and HTTPS URLs in an address bar.
+  - Parse NSIDs into domain authority, authority domain, name segment, and optional
+    fragment.
+  - Vendor a small explicit snapshot of common `app.bsky.*` and `com.atproto.*`
+    lexicons for instant/offline display.
+  - Label vendored schemas as local snapshots with source and snapshot metadata; do not
+    present them as canonical truth.
+  - For live lookup, resolve the NSID authority domain through DNS from the browser,
+    likely via DNS-over-HTTPS rather than a backend resolver.
+  - Prefer DNS records that explicitly advertise a Lexicon document URL or lexicon
+    service endpoint for the authority domain.
+  - Show a resolution trace with each attempted DNS name, record type, answer, fetch URL,
+    status, and error details.
+  - Display Lexicon JSON and a readable schema view with definitions, primary type,
+    required fields, refs, unions, known values, and descriptions.
+  - Link gedit Schema tabs and Nautilus collection schema actions into the matching
+    browser view.
+  - Keep lookup public/read-only and browser-only; do not add a backend resolver
+  - Make unsupported NSIDs clear: ATProto does not define universal automated NSID
+    schema fetching or enumeration.
 - [ ] **About This Computer**
   - Show OS/theme info and current public repo identity metadata when available.
 
 ## Priority Order
 
 - [x] Add canonical `/repos/:did/...` routing.
-- [ ] Deepen Nautilus and gedit with collection controls plus record JSON/schema/info tabs.
+- [x] Deepen Nautilus and gedit with collection controls plus record JSON/schema/info tabs.
 - [x] Add Identity Inspector.
 - [ ] Add System Monitor with Jetstream first.
 - [ ] Add Network Map.
 - [ ] Add Archive Manager.
 - [ ] Add Eye of GNOME blob browsing and previews.
 - [ ] Add Label Browser.
+- [ ] Add Web Browser for Lexicon viewing.
 - [ ] Add Log Viewer.
 - [ ] Add Network Servers.
 
@@ -112,6 +136,7 @@ Every new surface should feel like a GNOME 2 app that happens to speak `at://`.
   - first-run setup and handle typeahead states.
   - Nautilus collection selection, search, pagination, and record opening.
   - gedit JSON display, copy behavior, and record metadata tabs.
+  - Web Browser NSID parsing, vendored schema display, and resolution trace states.
   - window manager open, focus, minimize, maximize, and route-driven gedit opening.
 - Playwright E2E/smoke tests for critical flows:
   - `/` boots the desktop.
@@ -139,4 +164,3 @@ Every new surface should feel like a GNOME 2 app that happens to speak `at://`.
 - Multi-repo switching from the panel without implying authentication.
 
 - Relay
-- Web Browser for lexicon viewing (DNS resolution)

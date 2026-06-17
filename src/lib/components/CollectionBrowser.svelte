@@ -6,11 +6,31 @@
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
 	import { blobPath, collectionPath, identityPath, recordPath } from '$lib/atproto/routes';
+	import { isRecordValue } from '$lib/atproto/types';
 	import type { CollectionSummary, RepoRecordSummary } from '$lib/atproto/types';
 	import { SvelteMap } from 'svelte/reactivity';
 
+	type PreviewField = 'summary' | 'text' | 'type' | 'createdAt' | 'uri' | 'cid';
+
 	let searchQuery = $state('');
-	const collectionGroups = $derived.by(() => groupCollections(repoBrowser.collections));
+	let collectionFilter = $state('');
+	let reverseRecords = $state(false);
+	let previewField = $state<PreviewField>('summary');
+
+	const filteredCollections = $derived.by(() => {
+		const query = collectionFilter.trim().toLowerCase();
+		if (!query) return repoBrowser.collections;
+
+		return repoBrowser.collections.filter((collection) => {
+			const label = collection.appLabel?.toLowerCase() ?? '';
+			return collection.name.toLowerCase().includes(query) || label.includes(query);
+		});
+	});
+	const collectionGroups = $derived.by(() => groupCollections(filteredCollections));
+	const visibleRecords = $derived.by(() => {
+		if (!reverseRecords) return repoBrowser.records;
+		return [...repoBrowser.records].reverse();
+	});
 	type RepoPathname = `/repos/${string}`;
 	const navigateTo = goto as (url: string, options?: Parameters<typeof goto>[1]) => ReturnType<typeof goto>;
 
@@ -69,6 +89,51 @@
 		navigate(identityPath(identity.did));
 	}
 
+	function updatePageSize(event: Event) {
+		const identity = accountSetup.identity;
+		const select = event.currentTarget;
+
+		if (!(select instanceof HTMLSelectElement) || !identity) return;
+
+		void repoBrowser.setRecordPageSize(identity, Number(select.value));
+	}
+
+	function updatePreviewField(event: Event) {
+		const select = event.currentTarget;
+		if (!(select instanceof HTMLSelectElement)) return;
+
+		previewField = select.value as PreviewField;
+	}
+
+	function previewTitle(record: RepoRecordSummary) {
+		if (previewField === 'summary') return record.title;
+		if (previewField === 'text') return stringRecordField(record, 'text') ?? record.title;
+		if (previewField === 'type') return stringRecordField(record, '$type') ?? record.collection;
+		if (previewField === 'createdAt') return stringRecordField(record, 'createdAt') ?? record.modified;
+		if (previewField === 'uri') return record.uri;
+		if (previewField === 'cid') return record.cid || 'No CID';
+
+		return record.title;
+	}
+
+	function previewBody(record: RepoRecordSummary) {
+		if (previewField === 'summary') return record.body;
+		if (previewField === 'text') return record.body;
+		if (previewField === 'type') return `Collection: ${record.collection}`;
+		if (previewField === 'createdAt') return `Indexed as ${record.modified}`;
+		if (previewField === 'uri') return `${record.collection}/${record.rkey}`;
+		if (previewField === 'cid') return record.cid ? `Record CID: ${record.cid}` : 'Record returned without a CID.';
+
+		return record.body;
+	}
+
+	function stringRecordField(record: RepoRecordSummary, key: string) {
+		if (!isRecordValue(record.value)) return null;
+
+		const value = record.value[key];
+		return typeof value === 'string' && value.length > 0 ? value : null;
+	}
+
 	function navigate(path: string) {
 		void navigateTo(resolve(path as RepoPathname), { keepFocus: true, noScroll: true });
 	}
@@ -108,9 +173,16 @@
 			<p>{accountSetup.identity?.handle ?? 'at:// repo folders'}</p>
 		</header>
 
+		<label class="collection-filter">
+			<span>Filter</span>
+			<input bind:value={collectionFilter} placeholder="Collection name" />
+		</label>
+
 		<div class="collection-tree" role="tree" aria-label="Repository namespaces">
 			{#if repoBrowser.isLoadingCollections}
 				<p class="empty-row">Loading collections…</p>
+			{:else if filteredCollections.length === 0}
+				<p class="empty-row">No collections match that filter.</p>
 			{:else}
 				{#each collectionGroups as group (group.namespace)}
 					<details class="namespace-group" open>
@@ -168,6 +240,35 @@
 				</p>
 			</div>
 			<div class="summary-controls">
+				<div class="collection-controls" aria-label="Collection controls">
+					<label>
+						<span>Page size</span>
+						<select
+							value={repoBrowser.recordPageSize}
+							disabled={!repoBrowser.selectedCollection || repoBrowser.isLoadingRecords || repoBrowser.isSearching}
+							onchange={updatePageSize}>
+							<option value="10">10 records</option>
+							<option value="25">25 records</option>
+							<option value="50">50 records</option>
+							<option value="100">100 records</option>
+						</select>
+					</label>
+					<label>
+						<span>Preview</span>
+						<select value={previewField} onchange={updatePreviewField}>
+							<option value="summary">Summary</option>
+							<option value="text">Text</option>
+							<option value="type">Schema type</option>
+							<option value="createdAt">Created time</option>
+							<option value="uri">AT URI</option>
+							<option value="cid">CID</option>
+						</select>
+					</label>
+					<label class="reverse-toggle">
+						<input type="checkbox" bind:checked={reverseRecords} />
+						<span>Reverse order</span>
+					</label>
+				</div>
 				<form
 					class="search-box"
 					role="search"
@@ -219,12 +320,12 @@
 					{/if}
 				</p>
 			{:else}
-				{#each repoBrowser.records as record (record.uri)}
+				{#each visibleRecords as record (record.uri)}
 					<button class="record-row" type="button" onclick={() => openRecord(record)}>
 						<img src={record.icon} alt="" width="32" height="32" />
 						<div>
-							<h3>{record.title}</h3>
-							<p>{record.body}</p>
+							<h3>{previewTitle(record)}</h3>
+							<p>{previewBody(record)}</p>
 						</div>
 						<strong>{record.author}</strong>
 						<time>{record.modified}</time>
@@ -258,7 +359,7 @@
 
 	.sidebar {
 		display: grid;
-		grid-template-rows: auto minmax(0, 1fr);
+		grid-template-rows: auto auto minmax(0, 1fr);
 		min-height: 0;
 		background: linear-gradient(90deg, #cdb690, #e6d5b8);
 		border-right: 1px solid #9e8057;
@@ -268,6 +369,34 @@
 		padding: var(--space-3);
 		border-bottom: 1px solid #a88c62;
 		box-shadow: 0 1px 0 rgb(255 255 255 / 0.45);
+	}
+
+	.collection-filter {
+		display: grid;
+		gap: var(--space-1);
+		padding: var(--space-2) var(--space-3);
+		border-bottom: 1px solid #b89a70;
+	}
+
+	.collection-filter span,
+	.collection-controls span {
+		color: #4b3824;
+		font-size: var(--text-0);
+		font-weight: 700;
+		text-transform: uppercase;
+	}
+
+	.collection-filter input,
+	.collection-controls select {
+		min-width: 0;
+		padding: 0.3rem 0.4rem;
+		color: var(--text);
+		background: #fffdf8;
+		border: 1px solid #a88b63;
+		border-radius: var(--radius-2);
+		box-shadow: var(--shadow-sunken);
+		font: inherit;
+		font-size: var(--text-1);
 	}
 
 	.sidebar h2,
@@ -284,6 +413,7 @@
 	}
 
 	.collection-tree {
+		min-height: 0;
 		overflow: auto;
 		padding: var(--space-2);
 	}
@@ -410,6 +540,38 @@
 		gap: var(--space-1);
 		justify-self: end;
 		width: 100%;
+	}
+
+	.collection-controls {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		gap: var(--space-2);
+		align-items: end;
+		padding: var(--space-2);
+		background: rgb(255 253 248 / 0.58);
+		border: 1px solid #c0a47a;
+		border-radius: var(--radius-2);
+		box-shadow: 0 1px 0 rgb(255 255 255 / 0.5) inset;
+	}
+
+	.collection-controls label {
+		display: grid;
+		gap: var(--space-1);
+	}
+
+	.collection-controls .reverse-toggle {
+		grid-column: 1 / -1;
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-height: 1.5rem;
+	}
+
+	.reverse-toggle input {
+		width: 0.95rem;
+		height: 0.95rem;
+		margin: 0;
+		accent-color: #c96c1c;
 	}
 
 	.search-box label {

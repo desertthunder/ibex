@@ -9,17 +9,29 @@ A recreation of Ubuntu 8.10 as an ATProto browser. Inspired by
 
 ### Nautilus
 
-The main ATProto browser. It lists repo collections, mirrors them in Places, and
-opens records from the selected collection.
+The main repo browser. It lists public collections, groups them by namespace,
+filters collections, pages through records, searches cached records, and opens
+records in gedit or media in Eye of GNOME.
+
+### gedit
+
+A read-only record viewer. It opens JSON records from Nautilus with copy, word
+wrap, syntax highlighting, and tabs for JSON, inferred schema details, and record
+info such as AT URI, CID, raw PDS link, and external links.
+
+### Eye of GNOME
+
+A media viewer for repo blobs and record-attached media. It is used when Nautilus
+finds image or media blob references in a selected record.
+
+### Identity Inspector
+
+A public identity window for DID documents, aliases, services, verification
+methods, rotation keys, handle checks, and PDS links.
 
 ### About
 
 A small “About This Computer” window with OS, account, DID, PDS, and project links.
-
-### GEdit
-
-A read-only JSON viewer for records. It opens from Nautilus, supports copy and word
-wrap, and uses a native GTK-style window.
 
 ## Theme
 
