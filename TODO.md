@@ -64,7 +64,7 @@ Every new surface should feel like a GNOME 2 app that happens to speak `at://`.
     streams.
   - Filter by DID, collection, cursor, and stream instance where supported.
   - Show event rate, total events, top collections/sources, expandable JSON, and copy.
-- [ ] **Identity Inspector**
+- [x] **Identity Inspector**
   - Icon: `/icons/humanity/apps/identity-inspector.svg`.
   - Show DID document, aliases, services, verification methods, and rotation keys.
   - Validate handles through DNS TXT and `.well-known` when possible.
@@ -103,7 +103,7 @@ Every new surface should feel like a GNOME 2 app that happens to speak `at://`.
   - Keep lookup public/read-only.
   - Make unsupported NSIDs clear: ATProto does not define universal automated NSID
     schema fetching or enumeration.
-- [ ] **About This Computer**
+- [x] **About This Computer**
   - Show OS/theme info and current public repo identity metadata when available.
 
 ## Priority Order
