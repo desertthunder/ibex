@@ -168,6 +168,9 @@ export function rawBlobUrl(identity: AccountIdentity, cid: string) {
 }
 
 export function firstBlobReference(value: unknown, sourceUri: string | null): BlobReference | null {
+	const postImage = firstPostImageBlobReference(value, sourceUri);
+	if (postImage) return postImage;
+
 	return blobReferences(value, sourceUri)[0] ?? null;
 }
 
@@ -208,6 +211,38 @@ function collectBlobReferences(value: unknown, sourceUri: string | null, path: s
 	}
 
 	return references;
+}
+
+function firstPostImageBlobReference(value: unknown, sourceUri: string | null): BlobReference | null {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+
+	const record = value as Record<string, unknown>;
+	if (record.$type !== 'app.bsky.feed.post') return null;
+
+	const embed = record.embed;
+	if (typeof embed !== 'object' || embed === null || Array.isArray(embed)) return null;
+
+	const embedRecord = embed as Record<string, unknown>;
+	if (embedRecord.$type !== 'app.bsky.embed.images' || !Array.isArray(embedRecord.images)) return null;
+
+	for (const [index, image] of embedRecord.images.entries()) {
+		if (typeof image !== 'object' || image === null || Array.isArray(image)) continue;
+
+		const imageRecord = image as Record<string, unknown>;
+		const blob = imageRecord.image;
+		if (typeof blob !== 'object' || blob === null || Array.isArray(blob)) continue;
+		if (!isBlobObject(blob)) continue;
+
+		return {
+			cid: blob.ref.$link,
+			sourceUri,
+			mimeType: typeof blob.mimeType === 'string' ? blob.mimeType : null,
+			size: typeof blob.size === 'number' ? blob.size : null,
+			path: `embed.images.[${index}].image`
+		};
+	}
+
+	return null;
 }
 
 export const repoBlobs = new RepoBlobState();

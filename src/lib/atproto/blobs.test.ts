@@ -25,6 +25,25 @@ describe('ATProto blob helpers', () => {
 		});
 	});
 
+	it('prioritizes app.bsky.feed.post embedded images over other blob fields', () => {
+		const blob = firstBlobReference(
+			{
+				$type: 'app.bsky.feed.post',
+				cover: { ref: { $link: 'bafkcover' }, mimeType: 'image/png', size: 222 },
+				embed: {
+					$type: 'app.bsky.embed.images',
+					images: [
+						{ alt: 'first post image', image: { ref: { $link: 'bafkpostimage' }, mimeType: 'image/jpeg', size: 111 } }
+					]
+				}
+			},
+			'at://did:plc:abc123/app.bsky.feed.post/post1'
+		);
+
+		expect(blob?.cid).toBe('bafkpostimage');
+		expect(blob?.path).toBe('embed.images.[0].image');
+	});
+
 	it('returns null when a record has no blob ref', () => {
 		expect(firstBlobReference({ text: 'plain record' }, 'at://did:plc:abc123/app.bsky.feed.post/post2')).toBeNull();
 	});

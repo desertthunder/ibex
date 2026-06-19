@@ -43,12 +43,12 @@ Every new surface should feel like a GNOME 2 app that happens to speak `at://`.
     selection.
   - Add collection schema tabs and links into System Monitor for the selected repo or
     collection.
-- [ ] **gedit**
+- [x] **gedit**
   - Read-only JSON viewer for records.
   - Preserve copy, wrapping, syntax highlighting, and native GTK-style window behavior.
   - Add record tabs for JSON, schema, backlinks, and info.
   - Show AT URI, CID, raw PDS link, external app links, and read-only verification status.
-- [ ] **Eye of GNOME (eog)**
+- [x] **Eye of GNOME (eog)**
   - List public repo blob CIDs via `com.atproto.sync.listBlobs`.
   - Open from Nautilus when a record contains embedded images or media blobs.
   - Preview image/video blobs, with `app.bsky.feed.post` embedded images as the first

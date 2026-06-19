@@ -1,6 +1,12 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { repoBlobs } from '$lib/atproto/blobs.svelte';
+	import { blobsPath, recordPath } from '$lib/atproto/routes';
 	import { repoSession } from '$lib/atproto/session.svelte';
+
+	// TODO: this could go in routes.ts
+	type RepoPathname = `/repos/${string}`;
 
 	let previewMode = $state<'image' | 'video' | 'unsupported'>('image');
 	let copied = $state(false);
@@ -9,6 +15,9 @@
 	const identity = $derived(repoSession.identity);
 	const canGoPrevious = $derived(repoBlobs.selectedIndex > 0);
 	const canGoNext = $derived(repoBlobs.selectedIndex >= 0 && repoBlobs.selectedIndex < repoBlobs.blobs.length - 1);
+	const repoBlobBrowserPath = $derived(identity ? blobsPath(identity.did) : null);
+
+	const navigateTo = goto as (url: string, options?: Parameters<typeof goto>[1]) => ReturnType<typeof goto>;
 
 	function selectBlob(cid: string) {
 		if (!identity) return;
@@ -49,7 +58,25 @@
 
 	function openSourceUri() {
 		if (!selectedBlob?.sourceUri) return;
-		window.open(selectedBlob.sourceUri, '_blank', 'noopener,noreferrer');
+		const sourceRoute = recordPathFromAtUri(selectedBlob.sourceUri);
+		if (sourceRoute) {
+			void navigateTo(resolve(sourceRoute as RepoPathname), { keepFocus: true, noScroll: true });
+			return;
+		}
+
+		window.open(`https://pds.ls/${selectedBlob.sourceUri}`, '_blank', 'noopener,noreferrer');
+	}
+
+	function openRepoBlobs() {
+		if (!repoBlobBrowserPath) return;
+		void navigateTo(resolve(repoBlobBrowserPath as RepoPathname), { keepFocus: true, noScroll: true });
+	}
+
+	function recordPathFromAtUri(uri: string) {
+		if (!uri.startsWith('at://')) return null;
+		const [did, collection, rkey] = uri.slice('at://'.length).split('/');
+		if (!did || !collection || !rkey) return null;
+		return recordPath({ did, collection, rkey });
 	}
 </script>
 
@@ -132,6 +159,35 @@
 					<img src="/icons/humanity/apps/eog.svg" alt="" width="48" height="48" />
 					<h3>No blob selected</h3>
 					<p>Select a CID from the list to preview it.</p>
+				</div>
+			{/if}
+		</div>
+
+		<div class="blob-details" aria-label="Blob details">
+			{#if selectedBlob}
+				<div>
+					<span>CID</span>
+					<code>{selectedBlob.cid}</code>
+				</div>
+				<div>
+					<span>MIME</span>
+					<code>{selectedBlob.mimeType ?? 'Unknown'}</code>
+				</div>
+				<div>
+					<span>Source path</span>
+					<code>{selectedBlob.path ?? 'Repository blob'}</code>
+				</div>
+				<div class="detail-actions">
+					<a href={selectedBlob.rawUrl} target="_blank" rel="external noreferrer">Raw PDS URL</a>
+					{#if selectedBlob.sourceUri}
+						<button type="button" onclick={openSourceUri}>Source record</button>
+					{/if}
+					<button type="button" onclick={openRepoBlobs}>Repository blobs</button>
+				</div>
+			{:else}
+				<div>
+					<span>Repository</span>
+					<code>{identity?.did ?? 'No repo loaded'}</code>
 				</div>
 			{/if}
 		</div>
@@ -244,7 +300,7 @@
 
 	.preview-pane {
 		display: grid;
-		grid-template-rows: auto minmax(0, 1fr) auto;
+		grid-template-rows: auto minmax(0, 1fr) auto auto;
 		min-width: 0;
 		min-height: 0;
 		background: #fff8ec;
@@ -344,6 +400,56 @@
 		border-color: #b55a38;
 	}
 
+	.blob-details {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 1px;
+		background: #a88b63;
+		border-top: 1px solid #a88b63;
+	}
+
+	.blob-details div {
+		display: grid;
+		gap: 2px;
+		min-width: 0;
+		padding: var(--space-2);
+		background: #fff8ec;
+	}
+
+	.blob-details span {
+		color: #6a4a2b;
+		font-size: var(--text-0);
+		font-weight: 700;
+		text-transform: uppercase;
+	}
+
+	.blob-details code {
+		overflow: hidden;
+		color: #2c180d;
+		font-family: var(--font-mono);
+		font-size: var(--text-0);
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.blob-details .detail-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-1);
+		align-content: start;
+	}
+
+	.detail-actions a,
+	.detail-actions button {
+		color: #8a3f0b;
+		background: transparent;
+		border: 0;
+		font: inherit;
+		font-size: var(--text-1);
+		font-weight: 700;
+		text-decoration: underline;
+	}
+
 	.blob-status {
 		display: flex;
 		gap: var(--space-3);
@@ -368,6 +474,10 @@
 
 		.blob-sidebar {
 			display: none;
+		}
+
+		.blob-details {
+			grid-template-columns: 1fr;
 		}
 	}
 </style>

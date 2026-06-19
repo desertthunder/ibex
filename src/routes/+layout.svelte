@@ -248,7 +248,7 @@
 			return;
 		}
 
-		window.open('https://github.com/desertthunder.dev/ibex', '_blank', 'noopener,noreferrer');
+		window.open('https://github.com/desertthunder/ibex', '_blank', 'noopener,noreferrer');
 	}
 
 	function isLauncherSelected(id: DesktopLauncherId) {

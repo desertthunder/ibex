@@ -13,8 +13,9 @@
 
 	type Props = { record: RepoRecordSummary };
 	type TokenLine = Array<{ content: string; color?: string; fontStyle?: number }>;
-	type RecordTab = 'json' | 'schema' | 'info';
+	type RecordTab = 'json' | 'schema' | 'backlinks' | 'info';
 	type SchemaField = { name: string; valueType: string; preview: string };
+	type RecordReference = { label: string; value: string; kind: 'at-uri' | 'cid' | 'did' | 'url' };
 
 	let { record }: Props = $props();
 	let tokenLines = $state<TokenLine[]>([]);
@@ -35,6 +36,7 @@
 	});
 
 	const schemaFields = $derived.by(() => schemaFieldsForRecord(record.value));
+	const recordReferences = $derived.by(() => referencesForRecord(record.value));
 	const attachments = $derived.by(() => blobReferences(record.value, record.uri));
 	const identity = $derived(repoSession.identity);
 	const rawPdsLink = $derived.by(() => {
@@ -46,6 +48,7 @@
 	});
 
 	const externalLinks = $derived.by(() => linksForRecord(record));
+	const verificationStatus = $derived(record.cid ? 'CID present from com.atproto.repo.getRecord/listRecords.' : 'No CID was returned by the PDS.');
 
 	const themeName = 'ubuntu-iterm2b24';
 	const ubuntuTheme: ThemeRegistration = {
@@ -154,6 +157,48 @@
 		return links;
 	}
 
+	function referencesForRecord(value: unknown): RecordReference[] {
+		const references = new Map<string, RecordReference>();
+		collectReferences(value, [], references);
+		return [...references.values()];
+	}
+
+	function collectReferences(value: unknown, path: string[], references: Map<string, RecordReference>) {
+		if (typeof value === 'string') {
+			addStringReference(value, path, references);
+			return;
+		}
+
+		if (Array.isArray(value)) {
+			for (const [index, item] of value.entries()) {
+				collectReferences(item, [...path, `[${index}]`], references);
+			}
+			return;
+		}
+
+		if (!isRecordValue(value)) return;
+
+		for (const [key, child] of Object.entries(value)) {
+			collectReferences(child, [...path, key], references);
+		}
+	}
+
+	function addStringReference(value: string, path: string[], references: Map<string, RecordReference>) {
+		const kind = referenceKind(value);
+		if (!kind) return;
+
+		const label = path.length > 0 ? path.join('.') : 'value';
+		references.set(`${kind}:${value}`, { label, value, kind });
+	}
+
+	function referenceKind(value: string): RecordReference['kind'] | null {
+		if (value.startsWith('at://')) return 'at-uri';
+		if (value.startsWith('did:')) return 'did';
+		if (value.startsWith('http://') || value.startsWith('https://')) return 'url';
+		if (value.startsWith('bafy') || value.startsWith('bafk')) return 'cid';
+		return null;
+	}
+
 	function previewAttachment(attachment: BlobReference) {
 		if (!identity || !isRenderableBlob(attachment)) return;
 
@@ -212,6 +257,11 @@
 				class:active={activeTab === 'schema'}
 				aria-pressed={activeTab === 'schema'}
 				onclick={() => (activeTab = 'schema')}>Schema</button>
+			<button
+				type="button"
+				class:active={activeTab === 'backlinks'}
+				aria-pressed={activeTab === 'backlinks'}
+				onclick={() => (activeTab = 'backlinks')}>Backlinks</button>
 			<button
 				type="button"
 				class:active={activeTab === 'info'}
@@ -282,6 +332,43 @@
 				</tbody>
 			</table>
 		</div>
+	{:else if activeTab === 'backlinks'}
+		<div class="tab-panel backlinks-panel">
+			<section class="schema-summary" aria-label="Record backlink summary">
+				<img src="/icons/humanity/apps/internet-feed-reader.svg" alt="" width="38" height="38" />
+				<div>
+					<p class="panel-label">Read-only references</p>
+					<h2>
+						{recordReferences.length} linked value{#if recordReferences.length !== 1}s{/if}
+					</h2>
+					<p>Outbound AT URIs, CIDs, DIDs, and web links found in this record.</p>
+				</div>
+			</section>
+
+			<ul class="reference-list">
+				{#each recordReferences as reference (`${reference.label}-${reference.value}`)}
+					<li>
+						<span>{reference.kind}</span>
+						<div>
+							<strong>{reference.label}</strong>
+							{#if reference.kind === 'url' || reference.kind === 'at-uri'}
+								<a href={reference.value} target="_blank" rel="external noreferrer">{reference.value}</a>
+							{:else}
+								<code>{reference.value}</code>
+							{/if}
+						</div>
+					</li>
+				{:else}
+					<li class="empty-reference">
+						<span>none</span>
+						<div>
+							<strong>No outbound references found</strong>
+							<p>This record does not contain obvious AT URIs, CIDs, DIDs, or web links.</p>
+						</div>
+					</li>
+				{/each}
+			</ul>
+		</div>
 	{:else}
 		<div class="tab-panel info-panel">
 			<dl>
@@ -308,14 +395,8 @@
 					<dd>{record.rkey}</dd>
 				</div>
 				<div>
-					<dt>Read-only?</dt>
-					<dd>
-						{#if record.cid}
-							Loaded as a public repo record with an immutable CID.
-						{:else}
-							Loaded as a public repo record; the PDS did not include a CID.
-						{/if}
-					</dd>
+					<dt>Verification</dt>
+					<dd>{verificationStatus}</dd>
 				</div>
 				<div>
 					<dt>Raw PDS link</dt>
@@ -637,13 +718,66 @@
 	}
 
 	.external-links ul,
-	.attachment-list ul {
+	.attachment-list ul,
+	.reference-list {
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-2);
 		margin: 0;
 		padding: 0;
 		list-style: none;
+	}
+
+	.reference-list {
+		display: grid;
+	}
+
+	.reference-list li {
+		display: grid;
+		grid-template-columns: 5.5rem minmax(0, 1fr);
+		gap: var(--space-2);
+		align-items: start;
+		padding: var(--space-2);
+		background: var(--base10);
+		border: 1px solid var(--base02);
+	}
+
+	.reference-list li > span {
+		padding: 0.15rem var(--space-2);
+		color: var(--base01);
+		background: linear-gradient(#d3d7cf, #b3b7b0);
+		border: 1px solid var(--base03);
+		border-radius: var(--radius-1);
+		font-family: var(--font-sans);
+		font-size: var(--text-0);
+		font-weight: 700;
+		text-align: center;
+		text-transform: uppercase;
+	}
+
+	.reference-list div {
+		display: grid;
+		gap: 2px;
+		min-width: 0;
+	}
+
+	.reference-list strong,
+	.reference-list a,
+	.reference-list code,
+	.reference-list p {
+		overflow-wrap: anywhere;
+	}
+
+	.reference-list strong {
+		color: var(--base07);
+		font-size: var(--text-1);
+	}
+
+	.reference-list code,
+	.reference-list p {
+		color: var(--base05);
+		font-family: var(--font-mono);
+		font-size: var(--text-1);
 	}
 
 	.external-links a,

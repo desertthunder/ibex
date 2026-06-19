@@ -5,8 +5,9 @@
 	import { onMount } from 'svelte';
 	import { repoSession } from '$lib/atproto/session.svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
+	import { firstBlobReference, isRenderableBlob, repoBlobs } from '$lib/atproto/blobs.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
-	import { collectionPath, identityPath, recordPath } from '$lib/atproto/routes';
+	import { blobPath, collectionPath, identityPath, recordPath } from '$lib/atproto/routes';
 	import { lexiconPath } from '$lib/atproto/lexicon';
 	import { isRecordValue } from '$lib/atproto/types';
 	import type { CollectionSummary, RepoRecordSummary } from '$lib/atproto/types';
@@ -67,6 +68,13 @@
 	function openRecord(record: RepoRecordSummary) {
 		repoBrowser.selectedRecord = record;
 		if (identity) {
+			const firstMediaBlob = firstBlobReference(record.value, record.uri);
+			if (firstMediaBlob && isRenderableBlob(firstMediaBlob)) {
+				repoBlobs.openMedia(identity, { ...firstMediaBlob, sourceIcon: record.icon });
+				navigate(blobPath(identity.did, firstMediaBlob.cid));
+				return;
+			}
+
 			navigate(recordPath({ did: identity.did, collection: record.collection, rkey: record.rkey }));
 		}
 	}
