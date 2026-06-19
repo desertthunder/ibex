@@ -90,21 +90,17 @@ Every new surface should feel like a GNOME 2 app that happens to speak `at://`.
   - Accept NSIDs, `at://` lexicon records, and HTTPS URLs in an address bar.
   - Parse NSIDs into domain authority, authority domain, name segment, and optional
     fragment.
-  - Vendor a small explicit snapshot of common `app.bsky.*` and `com.atproto.*`
-    lexicons for instant/offline display.
-  - Label vendored schemas as local snapshots with source and snapshot metadata; do not
-    present them as canonical truth.
   - For live lookup, resolve the NSID authority domain through DNS from the browser,
     likely via DNS-over-HTTPS rather than a backend resolver.
-  - Prefer DNS records that explicitly advertise a Lexicon document URL or lexicon
-    service endpoint for the authority domain.
+  - Use the goat/Indigo Lexicon publication convention: read `did=...` TXT records
+    from the NSID authority domain.
   - Show a resolution trace with each attempted DNS name, record type, answer, fetch URL,
     status, and error details.
   - Display Lexicon JSON and a readable schema view with definitions, primary type,
     required fields, refs, unions, known values, and descriptions.
   - Link gedit Schema tabs and Nautilus collection schema actions into the matching
     browser view.
-  - Keep lookup public/read-only and browser-only; do not add a backend resolver
+  - Keep lookup public/read-only.
   - Make unsupported NSIDs clear: ATProto does not define universal automated NSID
     schema fetching or enumeration.
 - [ ] **About This Computer**
