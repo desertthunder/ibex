@@ -1,13 +1,24 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { notImplemented } from '$lib/not-implemented.svelte';
 	import { windowManager } from '$lib/window-manager.svelte';
 	import GnomeMenuBar from '$lib/components/GnomeMenuBar.svelte';
 
 	const launchers = [
-		{ label: 'Browser', icon: '/icons/humanity/apps/web-browser.svg' },
+		{ label: 'Browser', icon: '/icons/humanity/apps/web-browser.svg', path: '/lexicons' },
 		{ label: 'Mail', icon: '/icons/humanity/apps/evolution-mail.svg' },
 		{ label: 'Terminal', icon: '/icons/humanity/apps/utilities-terminal.svg' }
 	];
+
+	function openLauncher(launcher: (typeof launchers)[number]) {
+		if (launcher.path) {
+			void goto(resolve(launcher.path as '/lexicons'));
+			return;
+		}
+
+		notImplemented.show();
+	}
 </script>
 
 <header class="gnome-panel" aria-label="GNOME top panel">
@@ -15,7 +26,7 @@
 
 	<div class="panel-launchers" aria-label="Launchers">
 		{#each launchers as launcher (launcher.label)}
-			<button type="button" title={launcher.label} onclick={() => notImplemented.show()}>
+			<button type="button" title={launcher.label} onclick={() => openLauncher(launcher)}>
 				<img src={launcher.icon} alt="" width="22" height="22" />
 			</button>
 		{/each}

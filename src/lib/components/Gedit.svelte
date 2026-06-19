@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { ThemeRegistration } from 'shiki';
+	import { lexiconPath } from '$lib/atproto/lexicon';
 	import { blobPath } from '$lib/atproto/routes';
 	import { blobReferences, isRenderableBlob, rawBlobUrl, repoBlobs } from '$lib/atproto/blobs.svelte';
 	import { repoSession } from '$lib/atproto/session.svelte';
@@ -32,6 +33,7 @@
 
 		return record.collection;
 	});
+
 	const schemaFields = $derived.by(() => schemaFieldsForRecord(record.value));
 	const attachments = $derived.by(() => blobReferences(record.value, record.uri));
 	const identity = $derived(repoSession.identity);
@@ -39,11 +41,10 @@
 		const pds = identity?.pds;
 		const repo = identity?.did;
 		if (!pds || !repo) return null;
-
 		const params = new URLSearchParams({ repo, collection: record.collection, rkey: record.rkey });
-
 		return `${pds}/xrpc/com.atproto.repo.getRecord?${params.toString()}`;
 	});
+
 	const externalLinks = $derived.by(() => linksForRecord(record));
 
 	const themeName = 'ubuntu-iterm2b24';
@@ -70,9 +71,8 @@
 		]
 	};
 
-	let highlighterPromise: Promise<{
-		codeToTokensBase: (code: string, options: { lang: 'json'; theme: string }) => TokenLine[];
-	}> | null = null;
+	type P = (code: string, options: { lang: 'json'; theme: string }) => TokenLine[];
+	let highlighterPromise: Promise<{ codeToTokensBase: P }> | null = null;
 
 	async function getJsonHighlighter() {
 		highlighterPromise ??= Promise.all([
@@ -87,8 +87,9 @@
 			});
 
 			return {
-				codeToTokensBase: (code: string, options: { lang: 'json'; theme: string }) =>
-					highlighter.codeToTokensBase(code, options) as TokenLine[]
+				codeToTokensBase(code: string, options: { lang: 'json'; theme: string }) {
+					return highlighter.codeToTokensBase(code, options) as TokenLine[];
+				}
 			};
 		});
 
@@ -167,6 +168,10 @@
 		if (!identity) return;
 
 		window.open(rawBlobUrl(identity, attachment.cid), '_blank', 'noopener,noreferrer');
+	}
+
+	function openSchemaBrowser() {
+		void navigateTo(resolve(lexiconPath(recordType) as `/lexicons/${string}`), { keepFocus: true, noScroll: true });
 	}
 
 	function attachmentSizeLabel(size: number | null) {
@@ -251,6 +256,7 @@
 					<h2>{recordType}</h2>
 					<p>{record.collection}</p>
 				</div>
+				<button type="button" onclick={openSchemaBrowser}>Open in Web Browser</button>
 			</section>
 
 			<table>
@@ -572,8 +578,14 @@
 
 	td:first-child,
 	td:nth-child(2) {
+		width: 1%;
 		color: var(--base0a);
 		white-space: nowrap;
+	}
+
+	td:nth-child(3) {
+		overflow-wrap: break-word;
+		word-break: normal;
 	}
 
 	.info-panel {

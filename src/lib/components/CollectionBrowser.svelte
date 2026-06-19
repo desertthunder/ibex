@@ -7,6 +7,7 @@
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
 	import { collectionPath, identityPath, recordPath } from '$lib/atproto/routes';
+	import { lexiconPath } from '$lib/atproto/lexicon';
 	import { isRecordValue } from '$lib/atproto/types';
 	import type { CollectionSummary, RepoRecordSummary } from '$lib/atproto/types';
 	import { SvelteMap } from 'svelte/reactivity';
@@ -17,7 +18,6 @@
 	let collectionFilter = $state('');
 	let reverseRecords = $state(false);
 	let previewField = $state<PreviewField>('summary');
-
 	const filteredCollections = $derived.by(() => {
 		const query = collectionFilter.trim().toLowerCase();
 		if (!query) return repoBrowser.collections;
@@ -27,11 +27,13 @@
 			return collection.name.toLowerCase().includes(query) || label.includes(query);
 		});
 	});
+
 	const collectionGroups = $derived.by(() => groupCollections(filteredCollections));
 	const visibleRecords = $derived.by(() => {
 		if (!reverseRecords) return repoBrowser.records;
 		return [...repoBrowser.records].reverse();
 	});
+
 	const identity = $derived(repoSession.identity ?? (page.route.id === '/browse' ? accountSetup.identity : null));
 	const canUseAsDefault = $derived(Boolean(identity && identity.did !== accountSetup.identity?.did));
 	type RepoPathname = `/repos/${string}`;
@@ -64,7 +66,6 @@
 
 	function openRecord(record: RepoRecordSummary) {
 		repoBrowser.selectedRecord = record;
-
 		if (identity) {
 			navigate(recordPath({ did: identity.did, collection: record.collection, rkey: record.rkey }));
 		}
@@ -72,25 +73,30 @@
 
 	function openIdentityInspector() {
 		if (!identity) return;
-
 		navigate(identityPath(identity.did));
+	}
+
+	function openCollectionSchema() {
+		if (!repoBrowser.selectedCollection) return;
+		void navigateTo(resolve(lexiconPath(repoBrowser.selectedCollection) as `/lexicons/${string}`), {
+			keepFocus: true,
+			noScroll: true
+		});
 	}
 
 	function updatePageSize(event: Event) {
 		const select = event.currentTarget;
-
 		if (!(select instanceof HTMLSelectElement) || !identity) return;
-
 		void repoBrowser.setRecordPageSize(identity, Number(select.value));
 	}
 
 	function updatePreviewField(event: Event) {
 		const select = event.currentTarget;
 		if (!(select instanceof HTMLSelectElement)) return;
-
 		previewField = select.value as PreviewField;
 	}
 
+	// TODO: change to switch...case
 	function previewTitle(record: RepoRecordSummary) {
 		if (previewField === 'summary') return record.title;
 		if (previewField === 'text') return stringRecordField(record, 'text') ?? record.title;
@@ -98,10 +104,10 @@
 		if (previewField === 'createdAt') return stringRecordField(record, 'createdAt') ?? record.modified;
 		if (previewField === 'uri') return record.uri;
 		if (previewField === 'cid') return record.cid || 'No CID';
-
 		return record.title;
 	}
 
+	// TODO: change to switch...case
 	function previewBody(record: RepoRecordSummary) {
 		if (previewField === 'summary') return record.body;
 		if (previewField === 'text') return record.body;
@@ -109,13 +115,11 @@
 		if (previewField === 'createdAt') return `Indexed as ${record.modified}`;
 		if (previewField === 'uri') return `${record.collection}/${record.rkey}`;
 		if (previewField === 'cid') return record.cid ? `Record CID: ${record.cid}` : 'Record returned without a CID.';
-
 		return record.body;
 	}
 
 	function stringRecordField(record: RepoRecordSummary, key: string) {
 		if (!isRecordValue(record.value)) return null;
-
 		const value = record.value[key];
 		return typeof value === 'string' && value.length > 0 ? value : null;
 	}
@@ -283,6 +287,14 @@
 				<button class="identity-launcher" type="button" disabled={!identity} onclick={openIdentityInspector}>
 					<img src="/icons/humanity/apps/identity-inspector.svg" alt="" width="22" height="22" />
 					<span>Identity</span>
+				</button>
+				<button
+					class="identity-launcher"
+					type="button"
+					disabled={!repoBrowser.selectedCollection}
+					onclick={openCollectionSchema}>
+					<img src="/icons/humanity/apps/web-browser.svg" alt="" width="22" height="22" />
+					<span>Schema</span>
 				</button>
 				{#if canUseAsDefault}
 					<button class="identity-launcher" type="button" onclick={useCurrentRepoAsDefault}>

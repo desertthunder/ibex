@@ -45,6 +45,7 @@
 		if (page.route.id === '/') return 'Welcome to Intrepid Ibex';
 		// TODO: this should be slug aware
 		if (page.route.id?.startsWith('/docs')) return 'Document Viewer';
+		if (page.route.id?.startsWith('/lexicons')) return 'Web Browser';
 		return 'AT Protocol Collections - Intrepid Ibex';
 	});
 
@@ -52,6 +53,7 @@
 		if (routeRequiresSetup) return '/icons/humanity/places/user-home.svg';
 		if (page.route.id === '/') return '/icons/humanity/devices/computer.svg';
 		if (page.route.id?.startsWith('/docs')) return '/icons/humanity/mimes/gnome-mime-application-pdf.svg';
+		if (page.route.id?.startsWith('/lexicons')) return '/icons/humanity/apps/web-browser.svg';
 		return '/icons/humanity/apps/internet-feed-reader.svg';
 	});
 
@@ -63,6 +65,11 @@
 	const identityInspectorWindow = $derived(windowManager.getWindow('identity-inspector'));
 	const eogWindow = $derived(windowManager.getWindow('eog'));
 	const repoIdentity = $derived(repoSession.identity ?? accountSetup.identity);
+	const trashShortcut = {
+		label: 'Trash',
+		icon: '/icons/humanity/places/user-trash.svg',
+		onactivate: () => window.open('https://github.com/desertthunder.dev/ibex', '_blank', 'noopener,noreferrer')
+	};
 	const shortcuts = $derived([
 		{
 			label: 'ibex Home',
@@ -111,6 +118,15 @@
 			}
 		},
 		{
+			label: 'Web Browser',
+			icon: '/icons/humanity/apps/web-browser.svg',
+			selected: page.route.id?.startsWith('/lexicons'),
+			onactivate: () => {
+				windowManager.restore('main');
+				void goto(resolve('/lexicons'));
+			}
+		},
+		{
 			label: 'Computer',
 			icon: '/icons/humanity/devices/computer.svg',
 			selected: showAboutComputer,
@@ -127,11 +143,6 @@
 				windowManager.restore('main');
 				void goto(resolve('/docs'));
 			}
-		},
-		{
-			label: 'Trash',
-			icon: '/icons/humanity/places/user-trash.svg',
-			onactivate: () => window.open('https://github.com/desertthunder.dev/ibex', '_blank', 'noopener,noreferrer')
 		}
 	]);
 
@@ -241,7 +252,7 @@
 	}
 
 	function closeMainWindow() {
-		if (page.route.id === '/browse' || page.route.id?.startsWith('/repos')) {
+		if (page.route.id === '/browse' || page.route.id?.startsWith('/repos') || page.route.id?.startsWith('/lexicons')) {
 			void goto(resolve('/'), { keepFocus: true, noScroll: true });
 		}
 	}
@@ -276,6 +287,10 @@
 				{#each shortcuts as shortcut (shortcut.label)}
 					<DesktopIcon {...shortcut} />
 				{/each}
+			</section>
+
+			<section class="desktop-trash" aria-label="Trash">
+				<DesktopIcon {...trashShortcut} />
 			</section>
 
 			{#if mainWindow?.isOpen && !mainWindow.isMinimized}
@@ -451,6 +466,14 @@
 		gap: var(--space-4);
 	}
 
+	.desktop-trash {
+		position: absolute;
+		top: var(--space-5);
+		right: var(--space-5);
+		display: grid;
+		justify-items: center;
+	}
+
 	.primary-window {
 		position: relative;
 		align-self: center;
@@ -536,6 +559,11 @@
 			padding: var(--space-3);
 		}
 
+		.desktop-trash {
+			top: var(--space-3);
+			right: var(--space-3);
+		}
+
 		.about-window,
 		.gedit-window,
 		.identity-inspector-window,
@@ -551,6 +579,10 @@
 		}
 
 		.desktop-icons {
+			display: none;
+		}
+
+		.desktop-trash {
 			display: none;
 		}
 

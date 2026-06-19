@@ -6,6 +6,8 @@ export const identityPath = (did: string) => `${repoPath(did)}/identity`;
 
 export const blobsPath = (did: string) => `${repoPath(did)}/blobs`;
 
+export const lexiconsPath = () => '/lexicons';
+
 export function blobPath(did: string, cid: string) {
 	return `${blobsPath(did)}/${encodeURIComponent(cid)}`;
 }

@@ -85,13 +85,13 @@ Every new surface should feel like a GNOME 2 app that happens to speak `at://`.
 - [ ] **Network Servers**
   - Inspect public PDS host info, version, available domains, and repo list.
   - Link repos into Nautilus and open server firehose views in System Monitor.
-- [ ] **Web Browser**
+- [x] **Web Browser**
   - GNOME-style browser for reading Lexicon schemas and resolution traces.
   - Accept NSIDs, `at://` lexicon records, and HTTPS URLs in an address bar.
   - Parse NSIDs into domain authority, authority domain, name segment, and optional
     fragment.
-  - For live lookup, resolve the NSID authority domain through DNS from the browser,
-    likely via DNS-over-HTTPS rather than a backend resolver.
+  - For live lookup, use the public lexdns API to resolve the NSID authority domain
+    through DNS-over-HTTPS.
   - Use the goat/Indigo Lexicon publication convention: read `did=...` TXT records
     from the NSID authority domain.
   - Show a resolution trace with each attempted DNS name, record type, answer, fetch URL,
@@ -116,7 +116,7 @@ Every new surface should feel like a GNOME 2 app that happens to speak `at://`.
 - [ ] Add Archive Manager.
 - [ ] Add Eye of GNOME blob browsing and previews.
 - [ ] Add Label Browser.
-- [ ] Add Web Browser for Lexicon viewing.
+- [x] Add Web Browser for Lexicon viewing.
 - [ ] Add Log Viewer.
 - [ ] Add Network Servers.
 
