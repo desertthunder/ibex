@@ -87,7 +87,7 @@
 			</label>
 		</div>
 	</details>
-	<a class="tray-button" href="https://time.is" target="_blank">
+	<a class="tray-button time-button" href="https://time.is" target="_blank" title={panelTime}>
 		<time datetime={now.toISOString()}>{panelTime}</time>
 	</a>
 </aside>
@@ -197,12 +197,30 @@
 	}
 
 	.panel-tray time {
+		display: block;
+		max-width: 16rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 		font-variant-numeric: tabular-nums;
+	}
+
+	.time-button {
+		min-width: 0;
 	}
 
 	@media (max-width: 760px) {
 		.account-chip span {
 			display: none;
+		}
+
+		.panel-tray {
+			min-width: 0;
+			gap: var(--space-1);
+		}
+
+		.panel-tray time {
+			max-width: 7.5rem;
 		}
 	}
 </style>

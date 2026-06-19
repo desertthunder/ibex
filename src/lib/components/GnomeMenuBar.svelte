@@ -4,12 +4,15 @@
 	import { repoSession } from '$lib/atproto/session.svelte';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
-	import { collectionPath } from '$lib/atproto/routes';
+	import { blobsPath, collectionPath, identityPath } from '$lib/atproto/routes';
+	import { REPO_URL } from '$lib/constants';
+	import { desktopLaunchers, type DesktopLauncherId } from '$lib/launcher';
 	import { desktopSession } from '$lib/desktop-session.svelte';
 	import { windowManager } from '$lib/window-manager.svelte';
 	import GnomeTray from '$lib/components/GnomeTray.svelte';
 
 	type RepoPathname = `/repos/${string}`;
+	type AppPathname = '/' | '/browse' | '/docs' | '/lexicons' | RepoPathname;
 	const navigateTo = goto as (url: string, options?: Parameters<typeof goto>[1]) => ReturnType<typeof goto>;
 
 	function changeAccount() {
@@ -26,13 +29,91 @@
 
 		void navigateTo(resolve(collectionPath({ did: identity.did, collection: collectionName }) as RepoPathname));
 	}
+
+	function openPath(path: AppPathname) {
+		void navigateTo(resolve(path), { keepFocus: true, noScroll: true });
+	}
+
+	function openIdentityInspector() {
+		const identity = repoSession.identity ?? accountSetup.identity;
+		if (!identity) {
+			openPath('/browse');
+			return;
+		}
+
+		openPath(identityPath(identity.did) as RepoPathname);
+	}
+
+	function openImageViewer() {
+		const identity = repoSession.identity ?? accountSetup.identity;
+		if (!identity) {
+			openPath('/browse');
+			return;
+		}
+
+		openPath(blobsPath(identity.did) as RepoPathname);
+	}
+
+	function openAboutComputer() {
+		windowManager.open('about-computer');
+	}
+
+	function openLauncher(id: DesktopLauncherId) {
+		if (id === 'home') {
+			openPath('/');
+			return;
+		}
+
+		if (id === 'collections') {
+			openPath('/browse');
+			return;
+		}
+
+		if (id === 'identity-inspector') {
+			openIdentityInspector();
+			return;
+		}
+
+		if (id === 'image-viewer') {
+			openImageViewer();
+			return;
+		}
+
+		if (id === 'web-browser') {
+			openPath('/lexicons');
+			return;
+		}
+
+		if (id === 'about-computer') {
+			openAboutComputer();
+			return;
+		}
+
+		if (id === 'document-viewer') {
+			openPath('/docs');
+			return;
+		}
+
+		window.open(REPO_URL, '_blank', 'noopener,noreferrer');
+	}
 </script>
 
 <nav class="panel-menus" aria-label="System menus">
-	<button class="applications-menu" type="button" onclick={() => goto(resolve('/docs/atmosphere'))}>
-		<img src="/icons/humanity/apps/system-file-manager.svg" alt="" width="20" height="20" />
-		<span>Applications</span>
-	</button>
+	<details class="panel-menu applications-panel">
+		<summary class="applications-menu">
+			<img src="/icons/humanity/apps/system-file-manager.svg" alt="" width="20" height="20" />
+			<span>Applications</span>
+		</summary>
+		<div class="menu-popover applications-popover">
+			<p class="menu-heading">Applications</p>
+			{#each desktopLaunchers as launcher (launcher.id)}
+				<button type="button" onclick={() => openLauncher(launcher.id)}>
+					<img src={launcher.icon} alt="" width="16" height="16" />
+					<span>{launcher.label}</span>
+				</button>
+			{/each}
+		</div>
+	</details>
 
 	<details class="panel-menu">
 		<summary>Places</summary>
@@ -154,7 +235,8 @@
 		font-weight: 700;
 	}
 
-	.system-popover {
+	.system-popover,
+	.applications-popover {
 		min-width: 13rem;
 	}
 
@@ -163,7 +245,7 @@
 	}
 
 	@media (max-width: 760px) {
-		.panel-menus .panel-menu {
+		.panel-menus .panel-menu:not(.applications-panel) {
 			display: none;
 		}
 	}

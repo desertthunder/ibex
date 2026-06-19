@@ -16,10 +16,11 @@
 
 <style>
 	.sticky-note {
-		position: relative;
-		align-self: end;
+		position: absolute;
+		right: var(--space-5);
+		bottom: var(--space-5);
+		z-index: 2;
 		width: min(18rem, 100%);
-		margin-bottom: var(--space-8);
 		padding: var(--space-4);
 		transform: rotate(1.2deg);
 		color: #3a250e;
@@ -77,7 +78,17 @@
 
 	@media (max-width: 1000px) {
 		.sticky-note {
-			display: none;
+			right: var(--space-3);
+			bottom: var(--space-3);
+			width: min(16rem, calc(100vw - 2rem));
+			padding: var(--space-3);
+		}
+	}
+
+	@media (max-width: 640px) {
+		.sticky-note {
+			width: min(14rem, calc(100vw - 1.5rem));
+			font-size: var(--text-1);
 		}
 	}
 </style>

@@ -24,6 +24,11 @@ info such as AT URI, CID, raw PDS link, and external links.
 A media viewer for repo blobs and record-attached media. It is used when Nautilus
 finds image or media blob references in a selected record.
 
+### Web Browser
+
+A GNOME-style Lexicon schema browser. It resolves NSIDs through lexdns, shows
+readable schema definitions, raw Lexicon JSON, and the DNS/PDS resolution trace.
+
 ### Identity Inspector
 
 A public identity window for DID documents, aliases, services, verification

@@ -9,6 +9,7 @@
 	import { collectionPath, repoPath } from '$lib/atproto/routes';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
 	import favicon from '$lib/assets/favicon.svg';
+	import { leftDesktopLaunchers, rightDesktopLaunchers, type DesktopLauncherId } from '$lib/launcher';
 	import { desktopSession } from '$lib/desktop-session.svelte';
 	import { startupSound } from '$lib/sounds.svelte';
 	import { errorMessage } from '$lib/utils/errors';
@@ -65,86 +66,20 @@
 	const identityInspectorWindow = $derived(windowManager.getWindow('identity-inspector'));
 	const eogWindow = $derived(windowManager.getWindow('eog'));
 	const repoIdentity = $derived(repoSession.identity ?? accountSetup.identity);
-	const trashShortcut = {
-		label: 'Trash',
-		icon: '/icons/humanity/places/user-trash.svg',
-		onactivate: () => window.open('https://github.com/desertthunder.dev/ibex', '_blank', 'noopener,noreferrer')
-	};
-	const shortcuts = $derived([
-		{
-			label: 'ibex Home',
-			icon: '/icons/humanity/places/user-home.svg',
-			selected: page.route.id === '/',
-			onactivate: () => {
-				windowManager.restore('main');
-				void goto(resolve('/'));
-			}
-		},
-		{
-			label: 'Collections',
-			icon: '/icons/humanity/places/folder.svg',
-			selected: page.route.id === '/browse' || page.route.id?.startsWith('/repos'),
-			onactivate: () => {
-				windowManager.restore('main');
-				void goto(resolve('/browse'));
-			}
-		},
-		{
-			label: 'Identity Inspector',
-			icon: '/icons/humanity/apps/identity-inspector.svg',
-			selected: identityInspectorWindow?.isOpen && !identityInspectorWindow.isMinimized,
-			onactivate: () => {
-				if (repoIdentity) {
-					void goto(resolve(`/repos/${repoIdentity.did}/identity`), { keepFocus: true, noScroll: true });
-					return;
-				}
-
-				windowManager.restore('main');
-				void goto(resolve('/browse'));
-			}
-		},
-		{
-			label: 'Image Viewer',
-			icon: '/icons/humanity/apps/eog.svg',
-			selected: eogWindow?.isOpen && !eogWindow.isMinimized,
-			onactivate: () => {
-				if (repoIdentity) {
-					void goto(resolve(`/repos/${repoIdentity.did}/blobs`), { keepFocus: true, noScroll: true });
-					return;
-				}
-
-				windowManager.restore('main');
-				void goto(resolve('/browse'));
-			}
-		},
-		{
-			label: 'Web Browser',
-			icon: '/icons/humanity/apps/web-browser.svg',
-			selected: page.route.id?.startsWith('/lexicons'),
-			onactivate: () => {
-				windowManager.restore('main');
-				void goto(resolve('/lexicons'));
-			}
-		},
-		{
-			label: 'Computer',
-			icon: '/icons/humanity/devices/computer.svg',
-			selected: showAboutComputer,
-			onactivate: () => {
-				windowManager.open('about-computer');
-			}
-		},
-		{
-			label: 'Document Viewer',
-			icon: '/icons/humanity/mimes/gnome-mime-application-pdf.svg',
-			selected:
-				page.route.id?.startsWith('/docs') || (documentViewerWindow?.isOpen && !documentViewerWindow.isMinimized),
-			onactivate: () => {
-				windowManager.restore('main');
-				void goto(resolve('/docs'));
-			}
-		}
-	]);
+	const leftShortcuts = $derived(
+		leftDesktopLaunchers.map((launcher) => ({
+			...launcher,
+			selected: isLauncherSelected(launcher.id),
+			onactivate: () => activateLauncher(launcher.id)
+		}))
+	);
+	const rightShortcuts = $derived(
+		rightDesktopLaunchers.map((launcher) => ({
+			...launcher,
+			selected: isLauncherSelected(launcher.id),
+			onactivate: () => activateLauncher(launcher.id)
+		}))
+	);
 
 	afterNavigate(() => {
 		setMainWindowTitle();
@@ -261,6 +196,75 @@
 		void navigateTo(resolve(path as RepoPathname), { keepFocus: true, noScroll: true });
 	}
 
+	function activateLauncher(id: DesktopLauncherId) {
+		if (id === 'home') {
+			windowManager.restore('main');
+			void goto(resolve('/'));
+			return;
+		}
+
+		if (id === 'collections') {
+			windowManager.restore('main');
+			void goto(resolve('/browse'));
+			return;
+		}
+
+		if (id === 'identity-inspector') {
+			if (repoIdentity) {
+				void goto(resolve(`/repos/${repoIdentity.did}/identity`), { keepFocus: true, noScroll: true });
+				return;
+			}
+
+			windowManager.restore('main');
+			void goto(resolve('/browse'));
+			return;
+		}
+
+		if (id === 'image-viewer') {
+			if (repoIdentity) {
+				void goto(resolve(`/repos/${repoIdentity.did}/blobs`), { keepFocus: true, noScroll: true });
+				return;
+			}
+
+			windowManager.restore('main');
+			void goto(resolve('/browse'));
+			return;
+		}
+
+		if (id === 'web-browser') {
+			windowManager.restore('main');
+			void goto(resolve('/lexicons'));
+			return;
+		}
+
+		if (id === 'about-computer') {
+			windowManager.open('about-computer');
+			return;
+		}
+
+		if (id === 'document-viewer') {
+			windowManager.restore('main');
+			void goto(resolve('/docs'));
+			return;
+		}
+
+		window.open('https://github.com/desertthunder.dev/ibex', '_blank', 'noopener,noreferrer');
+	}
+
+	function isLauncherSelected(id: DesktopLauncherId) {
+		if (id === 'home') return page.route.id === '/';
+		if (id === 'collections') return page.route.id === '/browse' || page.route.id?.startsWith('/repos');
+		if (id === 'identity-inspector') return identityInspectorWindow?.isOpen && !identityInspectorWindow.isMinimized;
+		if (id === 'image-viewer') return eogWindow?.isOpen && !eogWindow.isMinimized;
+		if (id === 'web-browser') return page.route.id?.startsWith('/lexicons');
+		if (id === 'about-computer') return showAboutComputer;
+		if (id === 'document-viewer') {
+			return page.route.id?.startsWith('/docs') || (documentViewerWindow?.isOpen && !documentViewerWindow.isMinimized);
+		}
+
+		return false;
+	}
+
 	function setMainWindowTitle() {
 		windowManager.setTitle('main', windowTitle, windowIcon);
 	}
@@ -284,13 +288,15 @@
 
 		<main class="desktop-stage" aria-label="Ubuntu 8.10 inspired AT Protocol browser desktop">
 			<section class="desktop-icons" aria-label="Desktop shortcuts">
-				{#each shortcuts as shortcut (shortcut.label)}
+				{#each leftShortcuts as shortcut (shortcut.label)}
 					<DesktopIcon {...shortcut} />
 				{/each}
 			</section>
 
-			<section class="desktop-trash" aria-label="Trash">
-				<DesktopIcon {...trashShortcut} />
+			<section class="desktop-app-icons" aria-label="Application shortcuts">
+				{#each rightShortcuts as shortcut (shortcut.label)}
+					<DesktopIcon {...shortcut} />
+				{/each}
 			</section>
 
 			{#if mainWindow?.isOpen && !mainWindow.isMinimized}
@@ -459,19 +465,18 @@
 		padding: var(--space-5);
 	}
 
-	.desktop-icons {
+	.desktop-icons,
+	.desktop-app-icons {
 		display: grid;
 		align-content: start;
 		justify-items: center;
 		gap: var(--space-4);
 	}
 
-	.desktop-trash {
+	.desktop-app-icons {
 		position: absolute;
 		top: var(--space-5);
 		right: var(--space-5);
-		display: grid;
-		justify-items: center;
 	}
 
 	.primary-window {
@@ -559,7 +564,7 @@
 			padding: var(--space-3);
 		}
 
-		.desktop-trash {
+		.desktop-app-icons {
 			top: var(--space-3);
 			right: var(--space-3);
 		}
@@ -578,11 +583,8 @@
 			grid-template-columns: 1fr;
 		}
 
-		.desktop-icons {
-			display: none;
-		}
-
-		.desktop-trash {
+		.desktop-icons,
+		.desktop-app-icons {
 			display: none;
 		}
 
