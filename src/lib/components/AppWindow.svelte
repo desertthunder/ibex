@@ -59,18 +59,29 @@
 	onMount(() => {
 		if (!browser || !storageKey) return;
 
-		const storedGeometry = localStorage.getItem(storageKey);
-		if (!storedGeometry) return;
+		const resetStoredGeometry = () => {
+			x = 0;
+			y = 0;
+			width = null;
+			height = null;
+		};
 
-		try {
-			const geometry = JSON.parse(storedGeometry) as { x?: number; y?: number; width?: number; height?: number };
-			x = typeof geometry.x === 'number' ? geometry.x : 0;
-			y = typeof geometry.y === 'number' ? geometry.y : 0;
-			width = typeof geometry.width === 'number' ? geometry.width : null;
-			height = typeof geometry.height === 'number' ? geometry.height : null;
-		} catch {
-			localStorage.removeItem(storageKey);
+		window.addEventListener('intrepid-ibex:reset-window-geometry', resetStoredGeometry);
+
+		const storedGeometry = localStorage.getItem(storageKey);
+		if (storedGeometry) {
+			try {
+				const geometry = JSON.parse(storedGeometry) as { x?: number; y?: number; width?: number; height?: number };
+				x = typeof geometry.x === 'number' ? geometry.x : 0;
+				y = typeof geometry.y === 'number' ? geometry.y : 0;
+				width = typeof geometry.width === 'number' ? geometry.width : null;
+				height = typeof geometry.height === 'number' ? geometry.height : null;
+			} catch {
+				localStorage.removeItem(storageKey);
+			}
 		}
+
+		return () => window.removeEventListener('intrepid-ibex:reset-window-geometry', resetStoredGeometry);
 	});
 
 	function startDrag(event: PointerEvent) {

@@ -47,6 +47,18 @@
 
 		startupSound.setMuted(target.checked);
 	}
+
+	function resetWindowGeometry() {
+		const geometryKeyPrefix = 'intrepid-ibex:window-geometry:';
+
+		for (const key of Object.keys(localStorage)) {
+			if (key.startsWith(geometryKeyPrefix)) {
+				localStorage.removeItem(key);
+			}
+		}
+
+		window.dispatchEvent(new Event('intrepid-ibex:reset-window-geometry'));
+	}
 </script>
 
 <aside class="panel-tray" aria-label="Status tray">
@@ -65,6 +77,9 @@
 			<span>@{accountSetup.identity.handle}</span>
 		</a>
 	{/if}
+	<button class="tray-button" type="button" onclick={resetWindowGeometry} title="Reset window positions">
+		<img src="/icons/ui/reload.svg" alt="Reset window positions" width="16" height="16" />
+	</button>
 	<button class="tray-button" type="button" onclick={() => desktopSession.lock()} title="Lock screen">
 		<img src="/icons/humanity/status/network-wireless-encrypted.svg" alt="Lock screen" width="16" height="16" />
 	</button>

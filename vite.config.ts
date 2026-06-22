@@ -4,6 +4,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
 	plugins: [sveltekit()],
+	server: { open: true },
 	build: {
 		rolldownOptions: {
 			onLog(level, log, defaultHandler) {

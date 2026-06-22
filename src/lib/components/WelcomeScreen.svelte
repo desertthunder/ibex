@@ -2,7 +2,6 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { accountSetup } from '$lib/atproto/setup.svelte';
-	import AboutComputer from '$lib/components/AboutComputer.svelte';
 	import { REPO_URL } from '$lib/constants';
 
 	const quickLinks = [
@@ -93,10 +92,6 @@
 			</p>
 		</section>
 	</div>
-
-	<div class="about-embed">
-		<AboutComputer />
-	</div>
 </section>
 
 <style>
@@ -115,8 +110,7 @@
 
 	.welcome-banner,
 	.start-panel,
-	.notes-panel,
-	.about-embed {
+	.notes-panel {
 		border: 1px solid #8e6d43;
 		border-radius: var(--radius-3);
 		box-shadow:
@@ -296,15 +290,6 @@
 		background: #ead7b8;
 		border: 1px solid #d2b991;
 		border-radius: var(--radius-1);
-	}
-
-	.about-embed {
-		overflow: visible;
-	}
-
-	.about-embed :global(.about-computer) {
-		height: auto;
-		min-height: 0;
 	}
 
 	@media (max-width: 820px) {
