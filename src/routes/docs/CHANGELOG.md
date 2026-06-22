@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0
+
+- added a gnome browser/epiphany for lexicon schema browsing
+- open blobs in eog by default
+- applications menu & mobile responsiveness improvements
+- remove about computer from welcome
+- allow resetting of window position
+
 ## 1.2.0
 
 ### Changed
