@@ -58,7 +58,7 @@ Every new surface should feel like a GNOME 2 app that happens to speak `at://`.
   - Visualize an account at the center with app namespaces around it.
   - Show app count, record-type count, PDS hosting status, and app/domain validation.
   - Let users hide unresolved apps and jump from an app namespace into Nautilus.
-- [ ] **System Monitor**
+- [x] **System Monitor**
   - Icon: `/icons/humanity/apps/utilities-system-monitor.svg`.
   - Read-only live ATProto monitor for Jetstream, Firehose, and Spacedust-style backlink
     streams.
@@ -111,7 +111,7 @@ Every new surface should feel like a GNOME 2 app that happens to speak `at://`.
 - [x] Add canonical `/repos/:did/...` routing.
 - [x] Deepen Nautilus and gedit with collection controls plus record JSON/schema/info tabs.
 - [x] Add Identity Inspector.
-- [ ] Add System Monitor with Jetstream first.
+- [x] Add System Monitor with Jetstream first.
 - [ ] Add Network Map.
 - [ ] Add Archive Manager.
 - [ ] Add Eye of GNOME blob browsing and previews.

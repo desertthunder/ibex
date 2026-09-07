@@ -3,6 +3,7 @@ export type DesktopLauncherId =
 	| 'collections'
 	| 'identity-inspector'
 	| 'image-viewer'
+	| 'system-monitor'
 	| 'web-browser'
 	| 'pds-os'
 	| 'about-computer'
@@ -16,6 +17,7 @@ export const desktopLaunchers: DesktopLauncher[] = [
 	{ id: 'collections', label: 'Collections', icon: '/icons/humanity/places/folder.svg' },
 	{ id: 'identity-inspector', label: 'Identity Inspector', icon: '/icons/humanity/apps/identity-inspector.svg' },
 	{ id: 'image-viewer', label: 'Image Viewer', icon: '/icons/humanity/apps/eog.svg' },
+	{ id: 'system-monitor', label: 'System Monitor', icon: '/icons/humanity/apps/utilities-system-monitor.svg' },
 	{ id: 'web-browser', label: 'Web Browser', icon: '/icons/humanity/apps/web-browser.svg' },
 	{ id: 'pds-os', label: 'PDS OS', icon: '/logos/apple-classic.svg', href: 'https://pdsos.wisp.place/' },
 	{ id: 'about-computer', label: 'Computer', icon: '/icons/humanity/devices/computer.svg' },
@@ -27,6 +29,7 @@ const leftDesktopLauncherIds = new Set<DesktopLauncherId>(['home', 'collections'
 const rightDesktopLauncherIds = new Set<DesktopLauncherId>([
 	'identity-inspector',
 	'image-viewer',
+	'system-monitor',
 	'web-browser',
 	'pds-os',
 	'document-viewer'

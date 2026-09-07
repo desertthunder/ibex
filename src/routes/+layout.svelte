@@ -47,6 +47,7 @@
 		// TODO: this should be slug aware
 		if (page.route.id?.startsWith('/docs')) return 'Document Viewer';
 		if (page.route.id?.startsWith('/lexicons')) return 'Web Browser';
+		if (page.route.id?.startsWith('/live')) return 'System Monitor';
 		return 'AT Protocol Collections - Intrepid Ibex';
 	});
 
@@ -55,6 +56,7 @@
 		if (page.route.id === '/') return '/icons/humanity/devices/computer.svg';
 		if (page.route.id?.startsWith('/docs')) return '/icons/humanity/mimes/gnome-mime-application-pdf.svg';
 		if (page.route.id?.startsWith('/lexicons')) return '/icons/humanity/apps/web-browser.svg';
+		if (page.route.id?.startsWith('/live')) return '/icons/humanity/apps/utilities-system-monitor.svg';
 		return '/icons/humanity/apps/internet-feed-reader.svg';
 	});
 
@@ -187,7 +189,12 @@
 	}
 
 	function closeMainWindow() {
-		if (page.route.id === '/browse' || page.route.id?.startsWith('/repos') || page.route.id?.startsWith('/lexicons')) {
+		if (
+			page.route.id === '/browse' ||
+			page.route.id?.startsWith('/repos') ||
+			page.route.id?.startsWith('/lexicons') ||
+			page.route.id?.startsWith('/live')
+		) {
 			void goto(resolve('/'), { keepFocus: true, noScroll: true });
 		}
 	}
@@ -197,72 +204,78 @@
 	}
 
 	function activateLauncher(id: DesktopLauncherId) {
-		if (id === 'home') {
-			windowManager.restore('main');
-			void goto(resolve('/'));
-			return;
-		}
-
-		if (id === 'collections') {
-			windowManager.restore('main');
-			void goto(resolve('/browse'));
-			return;
-		}
-
-		if (id === 'identity-inspector') {
-			if (repoIdentity) {
-				void goto(resolve(`/repos/${repoIdentity.did}/identity`), { keepFocus: true, noScroll: true });
+		switch (id) {
+			case 'home':
+				windowManager.restore('main');
+				void goto(resolve('/'));
 				return;
-			}
-
-			windowManager.restore('main');
-			void goto(resolve('/browse'));
-			return;
-		}
-
-		if (id === 'image-viewer') {
-			if (repoIdentity) {
-				void goto(resolve(`/repos/${repoIdentity.did}/blobs`), { keepFocus: true, noScroll: true });
+			case 'collections':
+				windowManager.restore('main');
+				void goto(resolve('/browse'));
 				return;
-			}
+			case 'identity-inspector':
+				if (repoIdentity) {
+					void goto(resolve(`/repos/${repoIdentity.did}/identity`), { keepFocus: true, noScroll: true });
+					return;
+				}
 
-			windowManager.restore('main');
-			void goto(resolve('/browse'));
-			return;
+				windowManager.restore('main');
+				void goto(resolve('/browse'));
+				return;
+			case 'image-viewer':
+				if (repoIdentity) {
+					void goto(resolve(`/repos/${repoIdentity.did}/blobs`), { keepFocus: true, noScroll: true });
+					return;
+				}
+
+				windowManager.restore('main');
+				void goto(resolve('/browse'));
+				return;
+			case 'system-monitor':
+				windowManager.restore('main');
+				void goto(resolve('/live'));
+				return;
+			case 'web-browser':
+				windowManager.restore('main');
+				void goto(resolve('/lexicons'));
+				return;
+			case 'about-computer':
+				windowManager.open('about-computer');
+				return;
+			case 'document-viewer':
+				windowManager.restore('main');
+				void goto(resolve('/docs'));
+				return;
+			case 'pds-os':
+			case 'trash':
+				window.open('https://github.com/desertthunder/ibex', '_blank', 'noopener,noreferrer');
 		}
-
-		if (id === 'web-browser') {
-			windowManager.restore('main');
-			void goto(resolve('/lexicons'));
-			return;
-		}
-
-		if (id === 'about-computer') {
-			windowManager.open('about-computer');
-			return;
-		}
-
-		if (id === 'document-viewer') {
-			windowManager.restore('main');
-			void goto(resolve('/docs'));
-			return;
-		}
-
-		window.open('https://github.com/desertthunder/ibex', '_blank', 'noopener,noreferrer');
 	}
 
 	function isLauncherSelected(id: DesktopLauncherId) {
-		if (id === 'home') return page.route.id === '/';
-		if (id === 'collections') return page.route.id === '/browse' || page.route.id?.startsWith('/repos');
-		if (id === 'identity-inspector') return identityInspectorWindow?.isOpen && !identityInspectorWindow.isMinimized;
-		if (id === 'image-viewer') return eogWindow?.isOpen && !eogWindow.isMinimized;
-		if (id === 'web-browser') return page.route.id?.startsWith('/lexicons');
-		if (id === 'about-computer') return showAboutComputer;
-		if (id === 'document-viewer') {
-			return page.route.id?.startsWith('/docs') || (documentViewerWindow?.isOpen && !documentViewerWindow.isMinimized);
+		switch (id) {
+			case 'home':
+				return page.route.id === '/';
+			case 'collections':
+				return page.route.id === '/browse' || page.route.id?.startsWith('/repos');
+			case 'identity-inspector':
+				return identityInspectorWindow?.isOpen && !identityInspectorWindow.isMinimized;
+			case 'image-viewer':
+				return eogWindow?.isOpen && !eogWindow.isMinimized;
+			case 'system-monitor':
+				return page.route.id?.startsWith('/live');
+			case 'web-browser':
+				return page.route.id?.startsWith('/lexicons');
+			case 'about-computer':
+				return showAboutComputer;
+			case 'document-viewer':
+				return (
+					page.route.id?.startsWith('/docs') || (documentViewerWindow?.isOpen && !documentViewerWindow.isMinimized)
+				);
+			case 'pds-os':
+			case 'trash':
+				return false;
 		}
-
-		return false;
 	}
 
 	function setMainWindowTitle() {

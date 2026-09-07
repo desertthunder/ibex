@@ -12,7 +12,7 @@
 	import GnomeTray from '$lib/components/GnomeTray.svelte';
 
 	type RepoPathname = `/repos/${string}`;
-	type AppPathname = '/' | '/browse' | '/docs' | '/lexicons' | RepoPathname;
+	type AppPathname = '/' | '/browse' | '/docs' | '/lexicons' | '/live' | RepoPathname;
 	const navigateTo = goto as (url: string, options?: Parameters<typeof goto>[1]) => ReturnType<typeof goto>;
 
 	function changeAccount() {
@@ -77,6 +77,9 @@
 			case 'image-viewer':
 				openImageViewer();
 				return;
+			case 'system-monitor':
+				openPath('/live');
+				return;
 			case 'web-browser':
 				openPath('/lexicons');
 				return;
@@ -90,7 +93,6 @@
 			case 'pds-os':
 				window.open(REPO_URL, '_blank', 'noopener,noreferrer');
 		}
-
 	}
 </script>
 
