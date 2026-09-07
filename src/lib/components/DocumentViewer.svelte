@@ -153,4 +153,15 @@
 		border: 1px solid #d2b991;
 		border-radius: var(--radius-1);
 	}
+
+	@media (max-width: 640px) {
+		.document-viewer {
+			padding: var(--space-2);
+		}
+
+		.document-page,
+		.document-missing {
+			padding: var(--space-4);
+		}
+	}
 </style>

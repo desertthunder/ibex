@@ -34,6 +34,12 @@ readable schema definitions, raw Lexicon JSON, and the DNS/PDS resolution trace.
 A public identity window for DID documents, aliases, services, verification
 methods, rotation keys, handle checks, and PDS links.
 
+### System Monitor
+
+A live ATProto event monitor for Jetstream, the Firehose, and [Spacedust](https://www.microcosm.blue/).
+It supports stream filters, event-rate and payload statistics, source
+counts, recent event browsing, and decoded JSON inspection.
+
 ### About
 
 A small “About This Computer” window with OS, account, DID, PDS, and project links.

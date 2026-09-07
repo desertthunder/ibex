@@ -40,7 +40,12 @@
 	const navigateTo = goto as (url: string, options?: Parameters<typeof goto>[1]) => ReturnType<typeof goto>;
 
 	const routeRequiresSetup = $derived(page.route.id === '/browse' && !accountSetup.isConfigured);
-	const routeUsesNativeWindow = $derived(page.route.id === '/' || page.route.id?.startsWith('/docs'));
+	const routeUsesNativeWindow = $derived(
+		page.route.id === '/' ||
+			page.route.id?.startsWith('/docs') ||
+			page.route.id?.startsWith('/lexicons') ||
+			page.route.id?.startsWith('/live')
+	);
 	const windowTitle = $derived.by(() => {
 		if (routeRequiresSetup) return 'AT Protocol Account Setup';
 		if (page.route.id === '/') return 'Welcome to Intrepid Ibex';
@@ -607,6 +612,7 @@
 		}
 
 		.about-window,
+		.document-viewer-window,
 		.gedit-window,
 		.identity-inspector-window,
 		.eog-window {

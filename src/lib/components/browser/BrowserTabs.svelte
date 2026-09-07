@@ -52,4 +52,10 @@
 		background: linear-gradient(#cf7125, #8a5527);
 		text-shadow: 0 1px 0 rgb(0 0 0 / 0.45);
 	}
+
+	@media (pointer: coarse) {
+		button {
+			min-height: 2.75rem;
+		}
+	}
 </style>

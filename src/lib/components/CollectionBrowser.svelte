@@ -92,6 +92,12 @@
 		});
 	}
 
+	function updateMobileCollection(event: Event) {
+		const select = event.currentTarget;
+		if (!(select instanceof HTMLSelectElement) || !select.value) return;
+		selectCollection(select.value);
+	}
+
 	function updatePageSize(event: Event) {
 		const select = event.currentTarget;
 		if (!(select instanceof HTMLSelectElement) || !identity) return;
@@ -220,6 +226,16 @@
 	</aside>
 
 	<section class="record-pane" aria-label="Collection records">
+		<label class="mobile-collection-picker">
+			<span>Collection</span>
+			<select value={repoBrowser.selectedCollection ?? ''} onchange={updateMobileCollection}>
+				<option value="" disabled>Select a collection</option>
+				{#each repoBrowser.collections as collection (collection.name)}
+					<option value={collection.name}>{collection.name}</option>
+				{/each}
+			</select>
+		</label>
+
 		<div class="summary-card">
 			<img
 				src={repoBrowser.selectedSummary?.icon ?? '/icons/humanity/apps/internet-feed-reader.svg'}
@@ -537,6 +553,10 @@
 		background: #fff9ef;
 	}
 
+	.mobile-collection-picker {
+		display: none;
+	}
+
 	.summary-card {
 		display: grid;
 		grid-template-columns: 48px minmax(0, 1fr) minmax(16rem, 22rem);
@@ -755,8 +775,39 @@
 			display: none;
 		}
 
+		.record-pane {
+			grid-template-rows: auto auto minmax(0, 1fr);
+		}
+
+		.mobile-collection-picker {
+			display: grid;
+			grid-template-columns: auto minmax(0, 1fr);
+			gap: var(--space-2);
+			align-items: center;
+			padding: var(--space-2);
+			background: linear-gradient(#eadbbf, #cbb18a);
+			border-bottom: 1px solid #a88b63;
+			font-size: var(--text-1);
+			font-weight: 700;
+		}
+
+		.mobile-collection-picker select {
+			min-width: 0;
+			padding: 0.35rem 0.4rem;
+			background: #fffdf8;
+			border: 1px solid #a88b63;
+			border-radius: var(--radius-2);
+			font: inherit;
+		}
+
 		.summary-card {
-			grid-template-columns: 48px minmax(0, 1fr);
+			grid-template-columns: minmax(0, 1fr);
+			padding: var(--space-2);
+		}
+
+		.summary-card > img,
+		.summary-card > div:not(.summary-controls) > p:not(.eyebrow) {
+			display: none;
 		}
 
 		.search-box {
@@ -773,6 +824,14 @@
 		.record-list strong,
 		.record-list time {
 			display: none;
+		}
+	}
+
+	@media (pointer: coarse) {
+		.collection-browser button,
+		.collection-browser input,
+		.collection-browser select {
+			min-height: 2.75rem;
 		}
 	}
 </style>

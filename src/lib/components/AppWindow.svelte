@@ -257,7 +257,7 @@
 		position: relative;
 		display: grid;
 		grid-template-rows: auto auto auto minmax(0, 1fr);
-		min-width: 320px;
+		min-width: min(320px, 100%);
 		min-height: 220px;
 		overflow: hidden;
 		background: var(--window-surface);
@@ -468,6 +468,28 @@
 		.toolbar button:nth-of-type(2),
 		.toolbar input {
 			display: none;
+		}
+	}
+
+	@media (max-width: 640px) {
+		.app-window {
+			width: 100% !important;
+			height: 100% !important;
+			min-width: 0;
+			min-height: 0;
+			transform: none !important;
+		}
+	}
+
+	@media (pointer: coarse) {
+		.window-controls button {
+			width: 2rem;
+			height: 2rem;
+		}
+
+		.menubar button,
+		.toolbar button {
+			min-height: 2.75rem;
 		}
 	}
 </style>

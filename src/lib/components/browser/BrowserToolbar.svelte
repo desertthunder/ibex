@@ -143,11 +143,28 @@
 
 	@media (max-width: 760px) {
 		.browser-toolbar {
-			grid-template-columns: 1fr;
+			grid-template-columns: minmax(0, 1fr) auto;
+		}
+
+		.nav-buttons {
+			grid-column: 1 / -1;
+			overflow-x: auto;
 		}
 
 		.location-field {
-			grid-template-columns: 1fr;
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.location-field span,
+		.throbber {
+			display: none;
+		}
+	}
+
+	@media (pointer: coarse) {
+		button,
+		input {
+			min-height: 2.75rem;
 		}
 	}
 </style>

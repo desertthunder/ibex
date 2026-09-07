@@ -149,6 +149,7 @@
 	.browser-menubar {
 		display: flex;
 		gap: var(--space-3);
+		overflow-x: auto;
 		padding: 0.2rem var(--space-2);
 		background: linear-gradient(#f5efe4, #d4c1a0);
 		border-bottom: 1px solid #9f835d;
@@ -156,6 +157,7 @@
 	}
 
 	.browser-menubar span {
+		flex: none;
 		padding: 0.05rem var(--space-1);
 	}
 

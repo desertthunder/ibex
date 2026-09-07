@@ -48,7 +48,9 @@
 	});
 
 	const externalLinks = $derived.by(() => linksForRecord(record));
-	const verificationStatus = $derived(record.cid ? 'CID present from com.atproto.repo.getRecord/listRecords.' : 'No CID was returned by the PDS.');
+	const verificationStatus = $derived(
+		record.cid ? 'CID present from com.atproto.repo.getRecord/listRecords.' : 'No CID was returned by the PDS.'
+	);
 
 	const themeName = 'ubuntu-iterm2b24';
 	const ubuntuTheme: ThemeRegistration = {
@@ -889,5 +891,55 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	@media (max-width: 640px) {
+		.gedit-toolbar {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr);
+			gap: var(--space-1);
+		}
+
+		.tool-group,
+		.record-tabs {
+			overflow-x: auto;
+		}
+
+		.document-path {
+			grid-row: 1;
+		}
+
+		.schema-summary {
+			flex-wrap: wrap;
+		}
+
+		.schema-summary button {
+			width: 100%;
+		}
+
+		dl div,
+		.reference-list li,
+		.attachment-list li {
+			grid-template-columns: 1fr;
+		}
+
+		.attachment-actions {
+			flex-wrap: wrap;
+		}
+
+		.statusbar {
+			grid-template-columns: minmax(0, 1fr) auto;
+		}
+
+		.statusbar span:nth-child(2) {
+			display: none;
+		}
+	}
+
+	@media (pointer: coarse) {
+		.gedit-toolbar button,
+		.attachment-actions button {
+			min-height: 2.75rem;
+		}
 	}
 </style>

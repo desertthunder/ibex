@@ -470,14 +470,41 @@
 	@media (max-width: 760px) {
 		.eog-viewer {
 			grid-template-columns: 1fr;
+			grid-template-rows: auto minmax(0, 1fr);
 		}
 
 		.blob-sidebar {
+			grid-template-rows: auto;
+			border-right: 0;
+			border-bottom: 1px solid #92724a;
+		}
+
+		.blob-sidebar header {
 			display: none;
+		}
+
+		.blob-list {
+			grid-auto-flow: column;
+			grid-auto-columns: minmax(10rem, 12rem);
+			overflow-x: auto;
+			padding: var(--space-1);
+		}
+
+		.blob-list button {
+			min-height: 2.75rem;
 		}
 
 		.blob-details {
 			grid-template-columns: 1fr;
+		}
+	}
+
+	@media (pointer: coarse) {
+		.eog-toolbar button,
+		.blob-list button,
+		.detail-actions button,
+		.blob-status button {
+			min-height: 2.75rem;
 		}
 	}
 </style>

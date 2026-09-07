@@ -820,13 +820,17 @@
 			grid-template-rows: auto 10rem 18rem;
 		}
 		.detail-pane {
-			grid-template-columns: minmax(12rem, 0.7fr) minmax(18rem, 1.3fr);
+			grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
 			grid-template-rows: 18rem;
 			padding: 0 var(--space-2) var(--space-2);
 			border-left: 0;
 		}
 	}
 	@media (max-width: 560px) {
+		.system-monitor {
+			grid-template-rows: auto auto auto auto;
+			overflow: auto;
+		}
 		.stream-tabs button {
 			min-width: 0;
 			flex: 1;
@@ -848,6 +852,9 @@
 			justify-self: start;
 			white-space: normal;
 		}
+		.monitor-body {
+			overflow: visible;
+		}
 		.stat-grid {
 			grid-template-columns: 1fr;
 		}
@@ -866,6 +873,7 @@
 	}
 	@media (pointer: coarse) {
 		.stream-tabs button,
+		.connection-bar input,
 		.connection-actions button,
 		.json-detail button {
 			min-height: 2.75rem;

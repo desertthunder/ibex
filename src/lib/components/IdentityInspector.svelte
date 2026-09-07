@@ -611,4 +611,12 @@
 			border-bottom: 1px solid #d0b895;
 		}
 	}
+
+	@media (pointer: coarse) {
+		.keyring-sidebar button,
+		.keyring-toolbar button,
+		.property-row button {
+			min-height: 2.75rem;
+		}
+	}
 </style>

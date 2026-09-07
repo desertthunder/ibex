@@ -536,4 +536,11 @@
 			flex: 1;
 		}
 	}
+
+	@media (pointer: coarse) {
+		input,
+		button {
+			min-height: 2.75rem;
+		}
+	}
 </style>
