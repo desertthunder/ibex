@@ -1,19 +1,26 @@
 <script lang="ts">
-	type Props = { label: string; icon: string; selected?: boolean; onactivate?: () => void };
+	type Props = { label: string; icon: string; href?: string; selected?: boolean; onactivate?: () => void };
 
-	let { label, icon, selected = false, onactivate }: Props = $props();
+	let { label, icon, href, selected = false, onactivate }: Props = $props();
 </script>
 
-<button
-	class:selected
-	class="desktop-icon"
-	type="button"
-	aria-label={label}
-	onclick={onactivate}
-	ondblclick={onactivate}>
-	<img src={icon} alt="" width="48" height="48" />
-	<span>{label}</span>
-</button>
+{#if href}
+	<a class="desktop-icon" href={href} target="_blank" rel="external noreferrer" aria-label={label}>
+		<img src={icon} alt="" width="48" height="48" />
+		<span>{label}</span>
+	</a>
+{:else}
+	<button
+		class:selected
+		class="desktop-icon"
+		type="button"
+		aria-label={label}
+		onclick={onactivate}
+		ondblclick={onactivate}>
+		<img src={icon} alt="" width="48" height="48" />
+		<span>{label}</span>
+	</button>
+{/if}
 
 <style>
 	.desktop-icon {

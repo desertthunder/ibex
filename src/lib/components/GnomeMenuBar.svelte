@@ -6,7 +6,7 @@
 	import { repoBrowser } from '$lib/atproto/repo.svelte';
 	import { blobsPath, collectionPath, identityPath } from '$lib/atproto/routes';
 	import { REPO_URL } from '$lib/constants';
-	import { desktopLaunchers, type DesktopLauncherId } from '$lib/launcher';
+	import { desktopLaunchers, type DesktopLauncher } from '$lib/launcher';
 	import { desktopSession } from '$lib/desktop-session.svelte';
 	import { windowManager } from '$lib/window-manager.svelte';
 	import GnomeTray from '$lib/components/GnomeTray.svelte';
@@ -58,43 +58,39 @@
 		windowManager.open('about-computer');
 	}
 
-	function openLauncher(id: DesktopLauncherId) {
-		if (id === 'home') {
-			openPath('/');
+	function openLauncher(launcher: DesktopLauncher) {
+		if (launcher.href) {
+			window.open(launcher.href, '_blank', 'noopener,noreferrer');
 			return;
 		}
 
-		if (id === 'collections') {
-			openPath('/browse');
-			return;
+		switch (launcher.id) {
+			case 'home':
+				openPath('/');
+				return;
+			case 'collections':
+				openPath('/browse');
+				return;
+			case 'identity-inspector':
+				openIdentityInspector();
+				return;
+			case 'image-viewer':
+				openImageViewer();
+				return;
+			case 'web-browser':
+				openPath('/lexicons');
+				return;
+			case 'about-computer':
+				openAboutComputer();
+				return;
+			case 'document-viewer':
+				openPath('/docs');
+				return;
+			case 'trash':
+			case 'pds-os':
+				window.open(REPO_URL, '_blank', 'noopener,noreferrer');
 		}
 
-		if (id === 'identity-inspector') {
-			openIdentityInspector();
-			return;
-		}
-
-		if (id === 'image-viewer') {
-			openImageViewer();
-			return;
-		}
-
-		if (id === 'web-browser') {
-			openPath('/lexicons');
-			return;
-		}
-
-		if (id === 'about-computer') {
-			openAboutComputer();
-			return;
-		}
-
-		if (id === 'document-viewer') {
-			openPath('/docs');
-			return;
-		}
-
-		window.open(REPO_URL, '_blank', 'noopener,noreferrer');
 	}
 </script>
 
@@ -107,7 +103,7 @@
 		<div class="menu-popover applications-popover">
 			<p class="menu-heading">Applications</p>
 			{#each desktopLaunchers as launcher (launcher.id)}
-				<button type="button" onclick={() => openLauncher(launcher.id)}>
+				<button type="button" onclick={() => openLauncher(launcher)}>
 					<img src={launcher.icon} alt="" width="16" height="16" />
 					<span>{launcher.label}</span>
 				</button>
