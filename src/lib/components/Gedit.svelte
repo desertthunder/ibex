@@ -1,24 +1,23 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { ThemeRegistration } from 'shiki';
 	import { lexiconPath } from '$lib/atproto/lexicon';
 	import { blobPath } from '$lib/atproto/routes';
 	import { blobReferences, isRenderableBlob, rawBlobUrl, repoBlobs } from '$lib/atproto/blobs.svelte';
 	import { repoSession } from '$lib/atproto/session.svelte';
 	import { isRecordValue } from '$lib/atproto/types';
 	import type { BlobReference, RepoRecordSummary } from '$lib/atproto/types';
+	import { highlightJson, type SyntaxTokenLine } from '$lib/syntax-highlighting';
 	import { truncate } from '$lib/utils/text';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 
 	type Props = { record: RepoRecordSummary };
-	type TokenLine = Array<{ content: string; color?: string; fontStyle?: number }>;
 	type RecordTab = 'json' | 'schema' | 'backlinks' | 'info';
 	type SchemaField = { name: string; valueType: string; preview: string };
 	type RecordReference = { label: string; value: string; kind: 'at-uri' | 'cid' | 'did' | 'url' };
 
 	let { record }: Props = $props();
-	let tokenLines = $state<TokenLine[]>([]);
+	let tokenLines = $state<SyntaxTokenLine[]>([]);
 	let activeTab = $state<RecordTab>('json');
 	let wordWrap = $state(false);
 	let copied = $state(false);
@@ -52,58 +51,12 @@
 		record.cid ? 'CID present from com.atproto.repo.getRecord/listRecords.' : 'No CID was returned by the PDS.'
 	);
 
-	const themeName = 'ubuntu-iterm2b24';
-	const ubuntuTheme: ThemeRegistration = {
-		name: themeName,
-		type: 'dark',
-		colors: {
-			'editor.background': '#300a24',
-			'editor.foreground': '#eeeeec',
-			'editorLineNumber.foreground': '#747772',
-			'editor.selectionBackground': '#555753'
-		},
-		settings: [
-			{ settings: { foreground: '#eeeeec', background: '#300a24' } },
-			{ scope: ['comment'], settings: { foreground: '#747772', fontStyle: 'italic' } },
-			{ scope: ['string', 'string.quoted'], settings: { foreground: '#4e9a06' } },
-			{ scope: ['constant.numeric', 'constant.language'], settings: { foreground: '#c4a000' } },
-			{
-				scope: ['support.type.property-name', 'meta.structure.dictionary.key.json string'],
-				settings: { foreground: '#729fcf' }
-			},
-			{ scope: ['punctuation'], settings: { foreground: '#b3b7b0' } },
-			{ scope: ['invalid'], settings: { foreground: '#ef2929' } }
-		]
-	};
-
-	type P = (code: string, options: { lang: 'json'; theme: string }) => TokenLine[];
-	let highlighterPromise: Promise<{ codeToTokensBase: P }> | null = null;
-
-	async function getJsonHighlighter() {
-		highlighterPromise ??= Promise.all([
-			import('@shikijs/core'),
-			import('@shikijs/engine-javascript'),
-			import('@shikijs/langs/json')
-		]).then(async ([core, engine, json]) => {
-			const highlighter = await core.createHighlighterCore({
-				themes: [ubuntuTheme],
-				langs: [json.default],
-				engine: engine.createJavaScriptRegexEngine()
-			});
-
-			return {
-				codeToTokensBase(code: string, options: { lang: 'json'; theme: string }) {
-					return highlighter.codeToTokensBase(code, options) as TokenLine[];
-				}
-			};
-		});
-
-		return highlighterPromise;
-	}
-
 	async function highlight() {
-		const highlighter = await getJsonHighlighter();
-		tokenLines = highlighter.codeToTokensBase(record.json, { lang: 'json', theme: themeName });
+		try {
+			tokenLines = await highlightJson(record.json);
+		} catch {
+			tokenLines = [];
+		}
 	}
 
 	async function copyRecord() {

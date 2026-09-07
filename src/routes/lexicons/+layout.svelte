@@ -10,6 +10,7 @@
 	import BrowserToolbar from '$lib/components/browser/BrowserToolbar.svelte';
 	import SchemaDocument from '$lib/components/browser/SchemaDocument.svelte';
 	import TraceView from '$lib/components/browser/TraceView.svelte';
+	import HighlightedJson from '$lib/components/HighlightedJson.svelte';
 
 	let { children } = $props();
 	let activeTab = $state<BrowserTab>('schema');
@@ -115,7 +116,7 @@
 				{:else if activeTab === 'schema'}
 					<SchemaDocument lexicon={lexiconBrowser.result.lexicon} onreference={openReference} />
 				{:else if activeTab === 'json'}
-					<pre class="json-view"><code>{rawJson}</code></pre>
+					<pre class="json-view"><HighlightedJson code={rawJson} /></pre>
 				{:else}
 					<TraceView trace={currentTrace} />
 				{/if}

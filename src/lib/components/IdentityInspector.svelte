@@ -3,6 +3,7 @@
 	import { repoSession } from '$lib/atproto/session.svelte';
 	import { inspectIdentity, type IdentityCheck, type IdentityInspection } from '$lib/atproto/identity-inspector';
 	import { errorMessage } from '$lib/utils/errors';
+	import HighlightedJson from './HighlightedJson.svelte';
 
 	let inspection = $state<IdentityInspection | null>(null);
 	let selectedSection = $state<'overview' | 'aliases' | 'services' | 'keys' | 'raw'>('overview');
@@ -264,7 +265,7 @@
 			{:else}
 				<section class="property-section raw-section" aria-label="Raw DID document">
 					<h3>Raw DID Document</h3>
-					<pre>{inspection.rawJson}</pre>
+					<pre><HighlightedJson code={inspection.rawJson} /></pre>
 				</section>
 			{/if}
 		{/if}
@@ -570,9 +571,9 @@
 		margin: 0;
 		padding: var(--space-3);
 		overflow: auto;
-		color: #28190f;
-		background: #fff8ed;
-		border: 1px solid #c6ad89;
+		color: #eeeeec;
+		background: #300a24;
+		border: 1px solid #555753;
 		border-radius: var(--radius-1);
 		box-shadow: var(--shadow-sunken);
 		white-space: pre-wrap;

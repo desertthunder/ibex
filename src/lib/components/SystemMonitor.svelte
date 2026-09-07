@@ -14,6 +14,7 @@
 		type LiveStreamKind
 	} from '$lib/atproto/live-stream';
 	import { errorMessage } from '$lib/utils/errors';
+	import HighlightedJson from './HighlightedJson.svelte';
 
 	type Props = { stream: LiveStreamKind };
 	let { stream }: Props = $props();
@@ -430,7 +431,7 @@
 							<dd>{selectedEvent.source ?? '—'}</dd>
 						</div>
 					</dl>
-					<pre>{selectedEvent.json}</pre>
+					<pre><HighlightedJson code={selectedEvent.json} /></pre>
 				{:else}
 					<p>Select an event to inspect its JSON.</p>
 				{/if}
